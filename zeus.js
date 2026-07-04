@@ -4464,7 +4464,7 @@ async function saveSettings() {
             }
         }
 const CURRENT_VERSION = '1.6.7';
-const UPDATE_FIX = "constsCURRENT_VERSION='d.d.d'";
+const UPDATE_FIX = "constsCURRENT_VERSION='1.6.7'";
 		async function checkForUpdates(isManual = false) {
     const btn = document.getElementById('update-toggle');
     try {
