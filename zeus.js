@@ -286,7 +286,7 @@ const Router = {
 					currentAccountId = accData.result[0].id;
 				}
 
-				const githubRes = await fetch("https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/zeus.js?t=" + Date.now() + Math.random(), {
+				const githubRes = await fetch("https://raw.githubusercontent.com/sepehr-gamer/Zeus-pannel/refs/heads/main/zeus.js?t=" + Date.now() + Math.random(), {
 					headers: {
 						"Cache-Control": "no-cache, no-store, must-revalidate",
 						Pragma: "no-cache",
@@ -354,7 +354,7 @@ const Router = {
 			}
 
 			try {
-				const githubRes = await fetch("https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/zeus.js?t=" + Date.now(), {
+				const githubRes = await fetch("https://raw.githubusercontent.com/sepehr-gamer/Zeus-pannel/refs/heads/main/zeus.js?t=" + Date.now(), {
 					headers: {
 						"Cache-Control": "no-cache, no-store, must-revalidate",
 						Pragma: "no-cache",
@@ -2239,7 +2239,7 @@ const HTML_TEMPLATES = {
                     <span id="panel-version" class="text-xs px-2 py-0.5 font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full">v1.5.10</span>
                 </h1>
                 <div class="flex items-center gap-3 bg-gray-100 dark:bg-zinc-800/60 px-3 py-1.5 rounded-full border border-gray-200 dark:border-zinc-800/80 shadow-sm flex-shrink-0 w-fit">
-                    <a href="https://github.com/IR-NETLIFY/zeus" target="_blank" rel="noopener noreferrer" class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-all transform hover:scale-125 duration-200 flex-shrink-0" title="GitHub">
+                    <a href="https://github.com/sepehr-gamer/Zeus-pannel" target="_blank" rel="noopener noreferrer" class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-all transform hover:scale-125 duration-200 flex-shrink-0" title="GitHub">
                         <svg class="w-[22px] h-[22px] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
                         </svg>
@@ -4463,40 +4463,44 @@ async function saveSettings() {
                 window.location.reload();
             }
         }
-const CURRENT_VERSION = '1.6.6';
+const CURRENT_VERSION = '1.6.7';
 const UPDATE_FIX = "constsCURRENT_VERSION='d.d.d'";
 		async function checkForUpdates(isManual = false) {
-            try {
-                if (isManual) {
-                    document.getElementById('update-toggle').classList.add('animate-pulse');
-                }
-                const res = await fetch('https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/zeus.js?t=' + Date.now());
-                if (!res.ok) throw new Error('Network response was not ok');
-                const text = await res.text();
-                const match = text.match(/const\\s+CURRENT_VERSION\\s*=\\s*['"](\\d+\\.\\d+\\.\\d+)['"]/i);
-                const latestVersion = match ? match[1] : null;
-                if (isManual) {
-                    document.getElementById('update-toggle').classList.remove('animate-pulse');
-                }
-                if (latestVersion && latestVersion !== CURRENT_VERSION) {
-                    document.getElementById('update-toggle').className = "p-2 rounded-lg bg-red-100 dark:bg-red-900/60 border border-red-500 hover:bg-red-200 dark:hover:bg-red-900/80 transition text-red-700 dark:text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.6)] animate-pulse relative";
-                    const badge = document.getElementById('update-badge');
-                    if (badge) badge.remove();
-                    if (isManual) {
-                        toggleUpdateModal(true, latestVersion);
-                    }
-                } else {
-                    if (isManual) {
-                        alert('شما در حال استفاده از آخرین نسخه (v' + CURRENT_VERSION + ') هستید.');
-                    }
-                }
-            } catch (err) {
-                if (isManual) {
-                    document.getElementById('update-toggle').classList.remove('animate-pulse');
-                    alert('خطا در بررسی آپدیت از گیت هاب.');
-                }
+    const btn = document.getElementById('update-toggle');
+    try {
+        if (isManual) {
+            btn.classList.add('animate-pulse');
+            btn.disabled = true;
+        }
+        const res = await fetch('https://raw.githubusercontent.com/sepehr-gamer/Zeus-pannel/refs/heads/main/zeus.js?t=' + Date.now());
+        if (!res.ok) throw new Error('Network response was not ok');
+        const text = await res.text();
+        const match = text.match(/const\s+CURRENT_VERSION\s*=\s*['"](\d+\.\d+\.\d+)['"]/i);
+        const latestVersion = match ? match[1] : null;
+        if (isManual) {
+            btn.classList.remove('animate-pulse');
+            btn.disabled = false;
+        }
+        if (latestVersion && latestVersion !== CURRENT_VERSION) {
+            btn.className = "p-2 rounded-lg bg-red-100 dark:bg-red-900/60 border border-red-500 hover:bg-red-200 dark:hover:bg-red-900/80 transition text-red-700 dark:text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.6)] animate-pulse relative";
+            const badge = document.getElementById('update-badge');
+            if (badge) badge.remove();
+            if (isManual) {
+                toggleUpdateModal(true, latestVersion);
+            }
+        } else {
+            if (isManual) {
+                alert('شما در حال استفاده از آخرین نسخه (v' + CURRENT_VERSION + ') هستید.');
             }
         }
+    } catch (err) {
+        if (isManual) {
+            btn.classList.remove('animate-pulse');
+            btn.disabled = false;
+            alert('خطا در بررسی آپدیت از گیت هاب: ' + err.message);
+        }
+    }
+}
         function toggleTokenModal(show) {
             const modal = document.getElementById('token-modal');
             const card = document.getElementById('token-modal-card');
@@ -4525,48 +4529,56 @@ const UPDATE_FIX = "constsCURRENT_VERSION='d.d.d'";
         }
 
         async function applyUpdate(token = null) {
-            if (!token) toggleUpdateModal(false);
-            const btn = document.getElementById('update-toggle');
-            btn.disabled = true;
-            if (!token) alert('در حال دریافت و اعمال آپدیت... لطفاً چند ثانیه صبر کنید.');
-            try {
-                const reqBody = token ? JSON.stringify({ cf_token: token }) : "{}";
-                const res = await fetch('/api/update-panel', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: reqBody
-                });
-                const data = await res.json();
-                if (res.status === 400 && data.error === "TOKEN_REQUIRED") {
-                    toggleTokenModal(true);
-                    btn.disabled = false;
-                    return;
-                }
-                if (res.ok && data.success) {
-                    const successModal = document.getElementById('update-success-modal');
-                    const successCard = successModal.querySelector('div');
-                    
-                    successModal.classList.remove('opacity-0', 'pointer-events-none');
-                    successModal.classList.add('opacity-100', 'pointer-events-auto');
-                    successCard.classList.remove('opacity-0', 'scale-95');
-                    successCard.classList.add('opacity-100', 'scale-100');
-                    
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 10000);
-                } else {
-                    alert('خطا در بروزرسانی. لطفاً با استفاده از دکمه "آپدیت دستی" اقدام کنید.');
-                    btn.disabled = false;
-                }
-            } catch (err) {
-                alert('خطا در ارتباط با سرور. لطفاً از گزینه آپدیت دستی استفاده کنید.');
-                btn.disabled = false;
-            }
+    if (!token) toggleUpdateModal(false);
+    const btn = document.getElementById('update-toggle');
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+    if (!token) alert('در حال دریافت و اعمال آپدیت... لطفاً چند ثانیه صبر کنید.');
+    
+    try {
+        const reqBody = token ? JSON.stringify({ cf_token: token }) : "{}";
+        const res = await fetch('/api/update-panel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: reqBody
+        });
+        const data = await res.json();
+        
+        // ✅ اگر توکن نیاز است، دکمه را فعال کن
+        if (res.status === 400 && data.error === "TOKEN_REQUIRED") {
+            toggleTokenModal(true);
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            return;
         }
+        
+        if (res.ok && data.success) {
+            const successModal = document.getElementById('update-success-modal');
+            const successCard = successModal.querySelector('div');
+            
+            successModal.classList.remove('opacity-0', 'pointer-events-none');
+            successModal.classList.add('opacity-100', 'pointer-events-auto');
+            successCard.classList.remove('opacity-0', 'scale-95');
+            successCard.classList.add('opacity-100', 'scale-100');
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 10000);
+        } else {
+            alert('خطا در بروزرسانی: ' + (data.error || 'ناشناخته'));
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    } catch (err) {
+        alert('خطا در ارتباط با سرور. لطفاً از گزینه آپدیت دستی استفاده کنید.');
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+}
 let cachedIpsData = {};
 async function fetchIpsList() {
     try {
-        const response = await fetch('https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/ips.txt');
+        const response = await fetch('https://raw.githubusercontent.com/sepehr-gamer/Zeus-pannel/refs/heads/main/ips.txt');
         if (!response.ok) throw new Error('Fetch failed');
         const text = await response.text();
         const blocks = text.split('----------');
