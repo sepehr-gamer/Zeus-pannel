@@ -508,8 +508,15 @@ const Router = {
 					ip = proxy.match(/server=([^&]+)/)?.[1] || "";
 				} else {
 					let cleanProxy = proxy.replace(/^(socks4|socks5|socks|http|https):\/\//i, '');
-					let proxyParts = cleanProxy.split('@');
-					ip = (proxyParts.length > 1 ? proxyParts[1] : proxyParts[0]).split(':')[0];
+					let remain = cleanProxy;
+					if (remain.includes('@')) remain = remain.substring(remain.lastIndexOf('@') + 1);
+					if (remain.startsWith('[')) {
+						ip = remain.substring(1, remain.indexOf(']'));
+					} else {
+						const lastColon = remain.lastIndexOf(':');
+						if (lastColon !== -1 && remain.indexOf(':') === lastColon) ip = remain.substring(0, lastColon);
+						else ip = remain;
+					}
 				}
 				let country = "UN";
 				if (ip) {
@@ -562,7 +569,7 @@ const Router = {
 						}
 						return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
 					} else {
-						const { username: new_username, limit_gb, expiry_days, limit_req, ips, tls, port, fingerprint, ip_limit, block_porn, block_ads, frag_len, frag_int } = body;
+						const { username: new_username, limit_gb, expiry_days, limit_req, ips, tls, port, fingerprint, ip_limit, block_porn, block_ads, frag_len, frag_int, user_proxy_iata, user_socks5, user_proxy_ip } = body;
 						if (new_username && new_username !== username) {
 							const existing = await env.DB.prepare("SELECT id FROM users WHERE username = ?").bind(new_username).first();
 							if (existing) {
@@ -585,8 +592,8 @@ const Router = {
 								GLOBAL_LAST_ACTIVE_WRITE.delete(username);
 							}
 						}
-						await env.DB.prepare("UPDATE users SET username = ?, limit_gb = ?, expiry_days = ?, limit_req = ?, ips = ?, tls = ?, port = ?, fingerprint = ?, max_connections = ?, ip_limit = ?, block_porn = ?, block_ads = ?, frag_len = ?, frag_int = ? WHERE username = ?")
-							.bind(new_username || username, limit_gb ? parseFloat(limit_gb) : null, expiry_days ? parseInt(expiry_days) : null, limit_req ? parseInt(limit_req) : null, ips || null, tls, port, fingerprint || "chrome", ip_limit ? parseInt(ip_limit) : null, ip_limit ? parseInt(ip_limit) : null, block_porn ? 1 : 0, block_ads ? 1 : 0, frag_len !== undefined ? frag_len : "20-30", frag_int !== undefined ? frag_int : "1-2", username)
+						await env.DB.prepare("UPDATE users SET username = ?, limit_gb = ?, expiry_days = ?, limit_req = ?, ips = ?, tls = ?, port = ?, fingerprint = ?, max_connections = ?, ip_limit = ?, block_porn = ?, block_ads = ?, frag_len = ?, frag_int = ?, user_proxy_iata = ?, user_socks5 = ?, user_proxy_ip = ? WHERE username = ?")
+							.bind(new_username || username, limit_gb ? parseFloat(limit_gb) : null, expiry_days ? parseInt(expiry_days) : null, limit_req ? parseInt(limit_req) : null, ips || null, tls, port, fingerprint || "chrome", ip_limit ? parseInt(ip_limit) : null, ip_limit ? parseInt(ip_limit) : null, block_porn ? 1 : 0, block_ads ? 1 : 0, frag_len !== undefined ? frag_len : "200-3000", frag_int !== undefined ? frag_int : "1-2", user_proxy_iata || null, user_socks5 || null, user_proxy_ip || null, username)
 							.run();
 						return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
 					}
@@ -647,7 +654,7 @@ const Router = {
 					);
 				}
 				if (request.method === "POST") {
-					const { username, uuid, limit_gb, expiry_days, limit_req, ips, tls, port, fingerprint, ip_limit, used_gb, used_req, created_at, is_active, block_porn, block_ads, frag_len, frag_int } = await request.json();
+					const { username, uuid, limit_gb, expiry_days, limit_req, ips, tls, port, fingerprint, ip_limit, used_gb, used_req, created_at, is_active, block_porn, block_ads, frag_len, frag_int, user_proxy_iata, user_socks5, user_proxy_ip } = await request.json();
 					if (!username) {
 						return new Response(JSON.stringify({ error: "نام کاربری اجباری است" }), { status: 400, headers: { "Content-Type": "application/json" } });
 					}
@@ -663,8 +670,8 @@ const Router = {
 					const parsedIsActive = parseInt(is_active);
 					const finalIsActive = !isNaN(parsedIsActive) ? parsedIsActive : 1;
 					try {
-						await env.DB.prepare("INSERT INTO users (username, uuid, limit_gb, expiry_days, limit_req, ips, connection_type, tls, port, fingerprint, max_connections, ip_limit, used_gb, used_req, created_at, is_active, block_porn, block_ads, frag_len, frag_int) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-							.bind(username, finalUuid, limit_gb ? parseFloat(limit_gb) : null, expiry_days ? parseInt(expiry_days) : null, limit_req ? parseInt(limit_req) : null, ips || null, atob("dmxlc3M="), tls, port, fingerprint || "chrome", ip_limit ? parseInt(ip_limit) : null, ip_limit ? parseInt(ip_limit) : null, finalUsedGb, finalUsedReq, finalCreatedAt, finalIsActive, block_porn ? 1 : 0, block_ads ? 1 : 0, frag_len !== undefined ? frag_len : "20-30", frag_int !== undefined ? frag_int : "1-2")
+						await env.DB.prepare("INSERT INTO users (username, uuid, limit_gb, expiry_days, limit_req, ips, connection_type, tls, port, fingerprint, max_connections, ip_limit, used_gb, used_req, created_at, is_active, block_porn, block_ads, frag_len, frag_int, user_proxy_iata, user_socks5, user_proxy_ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+							.bind(username, finalUuid, limit_gb ? parseFloat(limit_gb) : null, expiry_days ? parseInt(expiry_days) : null, limit_req ? parseInt(limit_req) : null, ips || null, atob("dmxlc3M="), tls, port, fingerprint || "chrome", ip_limit ? parseInt(ip_limit) : null, ip_limit ? parseInt(ip_limit) : null, finalUsedGb, finalUsedReq, finalCreatedAt, finalIsActive, block_porn ? 1 : 0, block_ads ? 1 : 0, frag_len !== undefined ? frag_len : "200-3000", frag_int !== undefined ? frag_int : "1-2", user_proxy_iata || null, user_socks5 || null, user_proxy_ip || null)
 							.run();
 						return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
 					} catch (err) {
@@ -741,10 +748,25 @@ const DbService = {
 			await db.prepare("ALTER TABLE users ADD COLUMN block_ads INTEGER DEFAULT 0").run();
 		} catch (e) {}
 		try {
-			await db.prepare("ALTER TABLE users ADD COLUMN frag_len TEXT DEFAULT '20-30'").run();
+			await db.prepare("ALTER TABLE users ADD COLUMN frag_len TEXT DEFAULT '200-3000'").run();
 		} catch (e) {}
 		try {
 			await db.prepare("ALTER TABLE users ADD COLUMN frag_int TEXT DEFAULT '1-2'").run();
+		} catch (e) {}
+		try {
+			await db.prepare("ALTER TABLE users ADD COLUMN lifetime_used_gb REAL DEFAULT 0").run();
+		} catch (e) {}
+		try {
+			await db.prepare("UPDATE users SET lifetime_used_gb = used_gb WHERE lifetime_used_gb = 0 OR lifetime_used_gb IS NULL").run();
+		} catch (e) {}
+		try {
+			await db.prepare("ALTER TABLE users ADD COLUMN user_proxy_ip TEXT DEFAULT NULL").run();
+		} catch (e) {}
+		try {
+			await db.prepare("ALTER TABLE users ADD COLUMN user_proxy_iata TEXT DEFAULT NULL").run();
+		} catch (e) {}
+		try {
+			await db.prepare("ALTER TABLE users ADD COLUMN user_socks5 TEXT DEFAULT NULL").run();
 		} catch (e) {}
 		schemaEnsured = true;
 	},
@@ -871,7 +893,7 @@ async function flushExpiredTraffic(env) {
 			GLOBAL_WRITE_LOCK.set(uname, true);
 			const deltaGb = cachedBytes / (1024 * 1024 * 1024);
 			try {
-				await env.DB.prepare("UPDATE users SET used_gb = used_gb + ?, used_req = used_req + ? WHERE username = ?").bind(deltaGb, cachedReqs, uname).run();
+				await env.DB.prepare("UPDATE users SET used_gb = used_gb + ?, lifetime_used_gb = lifetime_used_gb + ?, used_req = used_req + ? WHERE username = ?").bind(deltaGb, deltaGb, cachedReqs, uname).run();
 			} catch (e) {
 				console.error(e.message);
 			} finally {
@@ -926,7 +948,7 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 			let deltaGb = toCommit / (1024 * 1024 * 1024);
 			let writeTask = async () => {
 				try {
-					await env.DB.prepare("UPDATE users SET used_gb = used_gb + ?, used_req = used_req + ? WHERE username = ?").bind(deltaGb, toCommitReq, username).run();
+					await env.DB.prepare("UPDATE users SET used_gb = used_gb + ?, lifetime_used_gb = lifetime_used_gb + ?, used_req = used_req + ? WHERE username = ?").bind(deltaGb, deltaGb, toCommitReq, username).run();
 				} catch (e) {
 					console.error(e.message);
 				} finally {
@@ -983,7 +1005,7 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 				const deltaGb = cachedBytes / (1024 * 1024 * 1024);
 				const writeTask = async () => {
 					try {
-						await env.DB.prepare("UPDATE users SET used_gb = used_gb + ?, used_req = used_req + ? WHERE username = ?").bind(deltaGb, cachedReqs, uname).run();
+						await env.DB.prepare("UPDATE users SET used_gb = used_gb + ?, lifetime_used_gb = lifetime_used_gb + ?, used_req = used_req + ? WHERE username = ?").bind(deltaGb, deltaGb, cachedReqs, uname).run();
 					} catch (e) {
 						console.error(e.message);
 					} finally {
@@ -1289,8 +1311,11 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 					addr = new TextDecoder().decode(chunkBuffer.slice(offset, offset + domainLen));
 					offset += domainLen;
 				} else if (addrType === 3) {
-					offset += 16;
-					addr = "ipv6-unsupported";
+					const v6 = [];
+					for(let i=0; i<8; i++) {
+						v6.push(((chunkBuffer[offset++] << 8) | chunkBuffer[offset++]).toString(16));
+					}
+					addr = v6.join(":");
 				}
 				const rawData = chunkBuffer.slice(offset);
 				const respHeader = new Uint8Array([chunkBuffer[0], 0]);
@@ -1310,19 +1335,40 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 					}
 					const task = (async () => {
 						let s = null;
-						const socks5 = storedData?.socks5 || "";
+						const socks5 = user?.user_socks5 || "";
 						
 						if (socks5) {
 							s = await connectProxy(socks5, addr, port, dataPayload);
 						} else {
-							let fHost = proxyIP;
-							let fPort = port;
-							if (proxyIP && proxyIP.includes(":")) {
-								const parts = proxyIP.split(":");
-								fHost = parts[0];
-								fPort = parseInt(parts[1]) || port;
+							let activeProxyIP = "";
+							if (user?.user_proxy_iata) {
+								activeProxyIP = user.user_proxy_iata.toLowerCase() + ".proxyip.cmliussss.net";
+							} else if (user?.user_proxy_ip) {
+								activeProxyIP = user.user_proxy_ip;
 							}
-							const isCustomProxy = proxyIP && proxyIP !== "proxyip.cmliussss.net";
+
+							let fHost = activeProxyIP;
+							let fPort = port;
+							if (activeProxyIP) {
+								if (activeProxyIP.startsWith("[")) {
+									const closeIdx = activeProxyIP.indexOf("]");
+									if (closeIdx !== -1) {
+										fHost = activeProxyIP.substring(1, closeIdx);
+										if (activeProxyIP.length > closeIdx + 1 && activeProxyIP[closeIdx + 1] === ":") {
+											fPort = parseInt(activeProxyIP.substring(closeIdx + 2)) || port;
+										}
+									}
+								} else {
+									const lastColon = activeProxyIP.lastIndexOf(":");
+									if (lastColon !== -1 && activeProxyIP.indexOf(":") === lastColon) {
+										fHost = activeProxyIP.substring(0, lastColon);
+										fPort = parseInt(activeProxyIP.substring(lastColon + 1)) || port;
+									} else {
+										fHost = activeProxyIP;
+									}
+								}
+							}
+							const isCustomProxy = activeProxyIP && activeProxyIP !== "proxyip.cmliussss.net";
 
 							if (isCustomProxy) {
 								try {
@@ -1334,7 +1380,7 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 								try {
 									s = await connectDirect(addr, port, dataPayload, targetDoh);
 								} catch (err) {
-									if (useFallback && proxyIP) {
+									if (useFallback && activeProxyIP) {
 										s = await connectDirect(fHost, fPort, dataPayload, targetDoh);
 									} else {
 										throw err;
@@ -2087,16 +2133,34 @@ async function connectProxy(proxyStr, destAddr, destPort, initialData) {
 async function connectSocks5(socksStr, destAddr, destPort, initialData) {
 	let user = "", pass = "", host = "", port = 1080;
 	let auth = false;
-	if (socksStr.includes("@")) {
-		const parts = socksStr.split("@");
-		const up = parts[0].split(":");
-		user = up[0] || ""; pass = up[1] || "";
+	let remain = socksStr;
+	if (remain.includes("@")) {
+		const atIdx = remain.lastIndexOf("@");
+		const authPart = remain.substring(0, atIdx);
+		remain = remain.substring(atIdx + 1);
+		const colonIdx = authPart.indexOf(":");
+		if (colonIdx !== -1) {
+			user = authPart.substring(0, colonIdx); pass = authPart.substring(colonIdx + 1);
+		} else {
+			user = authPart;
+		}
 		auth = true;
-		const hp = parts[1].split(":");
-		host = hp[0]; port = parseInt(hp[1]) || 1080;
+	}
+	if (remain.startsWith("[")) {
+		const closeIdx = remain.indexOf("]");
+		if (closeIdx !== -1) {
+			host = remain.substring(1, closeIdx);
+			if (remain.length > closeIdx + 1 && remain[closeIdx + 1] === ":") {
+				port = parseInt(remain.substring(closeIdx + 2)) || 1080;
+			}
+		}
 	} else {
-		const hp = socksStr.split(":");
-		host = hp[0]; port = parseInt(hp[1]) || 1080;
+		const lastColon = remain.lastIndexOf(":");
+		if (lastColon !== -1 && remain.indexOf(":") === lastColon) {
+			host = remain.substring(0, lastColon); port = parseInt(remain.substring(lastColon + 1)) || 1080;
+		} else {
+			host = remain;
+		}
 	}
 
 	const socket = connect({ hostname: host, port: port });
@@ -2170,16 +2234,34 @@ async function connectSocks5(socksStr, destAddr, destPort, initialData) {
 async function connectHttp(proxyStr, destAddr, destPort, initialData) {
 	let user = "", pass = "", host = "", port = 80;
 	let auth = false;
-	if (proxyStr.includes("@")) {
-		const parts = proxyStr.split("@");
-		const up = parts[0].split(":");
-		user = up[0] || ""; pass = up[1] || "";
+	let remain = proxyStr;
+	if (remain.includes("@")) {
+		const atIdx = remain.lastIndexOf("@");
+		const authPart = remain.substring(0, atIdx);
+		remain = remain.substring(atIdx + 1);
+		const colonIdx = authPart.indexOf(":");
+		if (colonIdx !== -1) {
+			user = authPart.substring(0, colonIdx); pass = authPart.substring(colonIdx + 1);
+		} else {
+			user = authPart;
+		}
 		auth = true;
-		const hp = parts[1].split(":");
-		host = hp[0]; port = parseInt(hp[1]) || 80;
+	}
+	if (remain.startsWith("[")) {
+		const closeIdx = remain.indexOf("]");
+		if (closeIdx !== -1) {
+			host = remain.substring(1, closeIdx);
+			if (remain.length > closeIdx + 1 && remain[closeIdx + 1] === ":") {
+				port = parseInt(remain.substring(closeIdx + 2)) || 80;
+			}
+		}
 	} else {
-		const hp = proxyStr.split(":");
-		host = hp[0]; port = parseInt(hp[1]) || 80;
+		const lastColon = remain.lastIndexOf(":");
+		if (lastColon !== -1 && remain.indexOf(":") === lastColon) {
+			host = remain.substring(0, lastColon); port = parseInt(remain.substring(lastColon + 1)) || 80;
+		} else {
+			host = remain;
+		}
 	}
 
 	const socket = connect({ hostname: host, port: port });
@@ -2187,7 +2269,8 @@ async function connectHttp(proxyStr, destAddr, destPort, initialData) {
 	const writer = socket.writable.getWriter();
 
 	try {
-		let req = `CONNECT ${destAddr}:${destPort} HTTP/1.1\r\nHost: ${destAddr}:${destPort}\r\n`;
+		const safeDest = destAddr.includes(":") ? `[${destAddr}]` : destAddr;
+		let req = `CONNECT ${safeDest}:${destPort} HTTP/1.1\r\nHost: ${safeDest}:${destPort}\r\n`;
 		if (auth) {
 			const authBase64 = btoa(`${user}:${pass}`);
 			req += `Proxy-Authorization: Basic ${authBase64}\r\n`;
@@ -2258,7 +2341,7 @@ const HTML_TEMPLATES = {
             <span class="inline-block px-2 py-1 bg-gray-100 dark:bg-amoled-input border border-gray-200 dark:border-zinc-800 rounded-md font-mono text-blue-500 font-bold mx-1 shadow-sm" dir="ltr">/panel</span> 
             را به انتهای آدرس مرورگر خود اضافه کنید.
         </p>
-        <button onclick="window.location.href='/panel'" class="mt-4 w-full py-2.5 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-medium rounded-xl text-sm transition-colors duration-200 shadow-lg font-bold">
+        <button onclick="window.location.href='/panel'" class="mt-4 w-full py-2.5 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-medium rounded-xl text-sm transition-colors duration-200 shadow-lg font-bold">
             ورود به پنل
         </button>
     </div>
@@ -2297,7 +2380,7 @@ const HTML_TEMPLATES = {
                 <label class="block text-sm font-medium mb-1.5">تکرار رمز عبور</label>
                 <input type="password" id="confirm-password" class="w-full px-3 py-2 bg-gray-50 dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-center font-mono" required minlength="4">
             </div>
-            <button type="submit" id="submit-btn" class="w-full py-2.5 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-medium rounded-lg text-sm transition font-bold">ثبت و ورود</button>
+            <button type="submit" id="submit-btn" class="w-full py-2.5 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-medium rounded-lg text-sm transition font-bold">ثبت و ورود</button>
         </form>
     </div>
     <div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
@@ -2307,7 +2390,7 @@ const HTML_TEMPLATES = {
             const toast = document.createElement('div');
             const colors = type === 'error' 
                 ? 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400' 
-                : 'bg-emerald-50 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400';
+                : 'bg-green-50 dark:bg-green-900/40 border-green-200 dark:border-green-800 text-green-700 dark:text-green-500';
             toast.className = 'px-4 py-3 border rounded-xl shadow-lg font-bold text-sm transform transition-all duration-300 -translate-y-full opacity-0 ' + colors;
             toast.innerText = message;
             container.appendChild(toast);
@@ -2395,8 +2478,34 @@ const HTML_TEMPLATES = {
                     <label class="block text-sm font-medium mb-1.5">رمز عبور</label>
                     <input type="password" id="password" class="w-full px-3 py-2 bg-gray-50 dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-center font-mono" required>
                 </div>
-                <button type="submit" id="submit-btn" class="w-full py-2.5 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-medium rounded-lg text-sm transition font-bold">ورود</button>
+                <button type="submit" id="submit-btn" class="w-full py-2.5 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-medium rounded-lg text-sm transition font-bold">ورود</button>
             </form>
+            <div class="mt-4 text-center">
+                <button onclick="toggleRecovery(true)" class="text-xs text-blue-500 hover:text-blue-600 transition font-medium">بازیابی رمز پنل</button>
+            </div>
+        </div>
+        <div id="recovery-section" class="hidden">
+            <h2 class="text-xl font-bold mb-4 text-center text-orange-600 dark:text-orange-400">بازیابی رمز پنل</h2>
+            
+            <div class="mb-5 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/50 rounded-xl text-xs leading-relaxed text-orange-800 dark:text-orange-300">
+                برای احراز هویت و اثبات مالکیت پنل، از طریق دکمه زیر وارد کلودفلر شوید و توکن دریافتی را کپی کرده و در کادر زیر وارد کنید.
+                <a href="https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys=%5B%7B%22key%22%3A%22workers_scripts%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22workers_kv_storage%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22d1%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22account_settings%22%2C%22type%22%3A%22read%22%7D%2C%7B%22key%22%3A%22workers_subdomain%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22account_analytics%22%2C%22type%22%3A%22read%22%7D%5D&accountId=*&zoneId=all&name=Zeus-Deployer-Token" target="_blank" class="mt-3 w-full flex items-center justify-center gap-2 py-2 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 rounded-lg font-bold transition shadow-md">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    دریافت توکن
+                </a>
+            </div>
+
+            <form onsubmit="handleRecovery(event)" class="space-y-4">
+                <div>
+                    <input type="password" id="api-token" placeholder="توکن را وارد کنید" class="w-full px-3 py-2 bg-gray-50 dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs text-center font-mono" required>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="toggleRecovery(false)" class="w-1/3 py-2.5 bg-transparent border-2 border-rose-700 text-rose-700 hover:bg-rose-900/20 hover:text-rose-800 dark:border-rose-700 dark:text-rose-500 dark:hover:bg-rose-900/40 dark:hover:text-rose-400 font-bold rounded-lg text-sm transition shadow-sm">انصراف</button>
+                    <button type="submit" id="recover-btn" class="w-2/3 py-2.5 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-medium rounded-lg text-sm transition font-bold">بازیابی رمز پنل</button>
+                </div>
+            </form>
+        </div>
+    </div>
     <div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
     <script>
         function showToast(message, type = 'success') {
@@ -2404,7 +2513,7 @@ const HTML_TEMPLATES = {
             const toast = document.createElement('div');
             const colors = type === 'error' 
                 ? 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400' 
-                : 'bg-emerald-50 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400';
+                : 'bg-green-50 dark:bg-green-900/40 border-green-200 dark:border-green-800 text-green-700 dark:text-green-500';
             toast.className = 'px-4 py-3 border rounded-xl shadow-lg font-bold text-sm transform transition-all duration-300 -translate-y-full opacity-0 ' + colors;
             toast.innerText = message;
             container.appendChild(toast);
@@ -2559,7 +2668,7 @@ const HTML_TEMPLATES = {
                     Caspian Panel 
                     <span id="panel-version" class="text-xs px-2 py-0.5 font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full">v1.5.10</span>
                 </h1>
-                <div class="flex items-center gap-3 bg-gray-100 dark:bg-zinc-800/60 px-3 py-1.5 rounded-full border border-gray-200 dark:border-zinc-800/80 shadow-sm flex-shrink-0 w-fit">
+                 <div class="flex items-center gap-3 bg-gray-100 dark:bg-zinc-800/60 px-3 py-1.5 rounded-full border border-gray-200 dark:border-zinc-800/80 shadow-sm flex-shrink-0 w-fit">
                     <a href="https://github.com/sepehr-gamer/Zeus-pannel" target="_blank" rel="noopener noreferrer" class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-all transform hover:scale-125 duration-200 flex-shrink-0" title="GitHub">
                         <svg class="w-[22px] h-[22px] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
@@ -2581,7 +2690,7 @@ const HTML_TEMPLATES = {
                                hover:bg-blue-100 dark:hover:bg-blue-900/50 
                                transition-all duration-200 
                                text-blue-600 dark:text-blue-400 shadow-sm" 
-                        title="ری‌استارت هسته ورکر">
+                        title="ری استارت پنل">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                     </svg>
@@ -2605,18 +2714,18 @@ const HTML_TEMPLATES = {
                 
                 <button id="update-toggle" onclick="checkForUpdates(true)" 
                         class="p-2 rounded-lg 
-                               bg-emerald-50 dark:bg-emerald-950/30 
-                               border border-emerald-200 dark:border-emerald-900 
-                               hover:bg-emerald-100 dark:hover:bg-emerald-900/50 
+                               bg-green-50 dark:bg-green-950/30 
+                               border border-green-200 dark:border-green-900 
+                               hover:bg-green-100 dark:hover:bg-green-900/50 
                                transition-all duration-200 
-                               text-emerald-600 dark:text-emerald-400 
+                               text-green-700 dark:text-green-500 
                                relative shadow-sm" 
                         title="آپدیت">
                     
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 11l3-3m0 0l3 3m-3-3v8m0-13a9 9 0 110 18 9 9 0 010-18z"></path>
                     </svg>
-                    <span id="update-badge" class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-emerald-50 dark:border-emerald-900 rounded-full hidden animate-pulse"></span>
+                    <span id="update-badge" class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-green-50 dark:border-green-900 rounded-full hidden animate-pulse"></span>
                 </button>
                 
                 <button onclick="toggleSettingsModal(true)" 
@@ -2712,7 +2821,9 @@ const HTML_TEMPLATES = {
         <div class="flex items-center justify-between relative z-10 mb-2">
             <span class="text-sm font-semibold text-gray-500 dark:text-zinc-400 whitespace-nowrap">حجم مصرفی (۳۰ روز)</span>
             <div class="p-2 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 rounded-xl flex-shrink-0">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+</svg>
             </div>
         </div>
         <div class="space-y-1.5 relative z-10 min-w-0 flex-1">
@@ -2728,7 +2839,15 @@ const HTML_TEMPLATES = {
         <div class="flex items-center justify-between relative z-10 mb-2">
             <span class="text-sm font-semibold text-gray-500 dark:text-zinc-400 whitespace-nowrap">پر مصرف‌ترین کاربر</span>
             <div class="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-xl flex-shrink-0">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- تاج -->
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3L9 8l-3-2 2 5H4l2-4-2-3 5 1 3-3 3 3 5-1-2 3 2 4h-4l2-5-3 2-3-5z" />
+    <!-- نمایه کاربر -->
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 9a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 13a6 6 0 00-6 6h12a6 6 0 00-6-6z" />
+    <!-- نمودار افزایشی در پایین -->
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 19l4-4 3 2 5-4 4 3" />
+</svg>
             </div>
         </div>
         <div class="space-y-1.5 relative z-10 min-w-0 flex-1">
@@ -2740,23 +2859,23 @@ const HTML_TEMPLATES = {
         <div id="loading-state" class="text-center py-12">
             <span class="text-gray-500 dark:text-gray-400">در حال بارگذاری کاربران...</span>
         </div>
-        <div class="mb-6 flex flex-col md:flex-row gap-4 justify-between items-center bg-white dark:bg-amoled-card border border-gray-200 dark:border-amoled-border rounded-2xl p-4 shadow-sm">
+        <div class="mb-5 flex flex-col md:flex-row gap-2 justify-between items-center bg-white dark:bg-amoled-card border border-gray-200 dark:border-amoled-border rounded-xl p-2 shadow-sm">
             <div class="relative w-full md:w-80">
-                <input type="text" id="search-input" oninput="filterAndRenderUsers()" placeholder="جستجوی نام کاربری یا UUID..." class="w-full pl-3 pr-9 py-2.5 bg-gray-50 dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <input type="text" id="search-input" oninput="filterAndRenderUsers()" placeholder="جستجوی نام کاربری یا UUID..." class="w-full pl-3 pr-8 py-1.5 bg-gray-50 dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs">
+                <div class="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-gray-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
             </div>
-            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                <select id="filter-status" onchange="filterAndRenderUsers()" class="px-3 py-2.5 bg-gray-50 dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-zinc-300 cursor-pointer">
-                    <option value="all">🔍 همه وضعیت‌ها</option>
-                    <option value="active">✅ فعال</option>
+            <div class="flex items-center gap-2 w-full md:w-auto">
+                <select id="filter-status" onchange="filterAndRenderUsers()" class="flex-1 min-w-0 px-2 py-1.5 bg-gray-50 dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-zinc-300 cursor-pointer truncate">
+                    <option value="all">🔍 همه</option>
+					<option value="active">✅ فعال</option>
                     <option value="inactive">❌ غیرفعال</option>
                     <option value="online">⚡ آنلاین</option>
                     <option value="offline">💤 آفلاین</option>
-                    <option value="expired">⏳ منقضی شده / تمام شده</option>
+                    <option value="expired">⏳ منقضی</option>
                 </select>
-                <select id="sort-users" onchange="filterAndRenderUsers()" class="px-3 py-2.5 bg-gray-50 dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-zinc-300 cursor-pointer">
+                <select id="sort-users" onchange="filterAndRenderUsers()" class="flex-1 min-w-0 px-2 py-1.5 bg-gray-50 dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-zinc-300 cursor-pointer truncate">
                     <option value="newest">📅 جدیدترین</option>
                     <option value="name">🔤 نام کاربری (الفبا)</option>
                     <option value="usage-desc">📊 بیشترین مصرف</option>
@@ -2789,8 +2908,8 @@ const HTML_TEMPLATES = {
                 <tbody id="users-tbody" class="divide-y divide-gray-150 dark:divide-amoled-border text-sm"></tbody>
             </table>
         </div>
-        <div id="empty-state" class="hidden p-8 border border-dashed border-gray-300 dark:border-amoled-border rounded-2xl text-center">
-            <p class="text-gray-500 dark:text-gray-400">کاربری وجود ندارد. برای ساخت اولین کاربر روی دکمه «افزودن کاربر جدید» کلیک کنید.</p>
+        <div id="empty-state" class="hidden p-8 border-2 border-dashed border-red-500/60 dark:border-red-500/50 bg-red-50 dark:bg-red-900/10 rounded-2xl text-center animate-pulse shadow-sm">
+            <p class="text-red-600 dark:text-red-400 font-bold text-lg">کاربری وجود ندارد. برای ساخت اولین کاربر روی دکمه « + » کلیک کنید.</p>
         </div>
     </main>
 <div id="path-warning-modal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300 ease-out">
@@ -2800,9 +2919,9 @@ const HTML_TEMPLATES = {
         </div>
         <h3 class="font-black text-xl text-gray-900 dark:text-white mb-2">تغییر مهم در ساختار کانفیگ‌ها</h3>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed font-medium">
-            به دلیل ارتقای امنیت و تغییر مسیر (Path) اتصال ، کانفیگ‌های قبل از نسخه 1.5.9 غیرفعال شده‌اند. درصورت عدم اتصال لطفاً ساب خود را بروزرسانی کنید .
+            به دلیل ارتقای امنیت و تغییر مسیر (Path) اتصال ، کانفیگ‌های قبل از نسخه 1.3.4 غیرفعال شده‌اند. درصورت عدم اتصال لطفاً ساب خود را بروزرسانی کنید .
         </p>
-        <button onclick="closePathWarning()" class="w-full py-3.5 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-black rounded-xl text-sm transition duration-300 shadow-lg">
+        <button onclick="closePathWarning()" class="w-full py-3.5 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-black rounded-xl text-sm transition duration-300 shadow-lg">
             متوجه شدم، کانفیگ‌های جدید را می‌گیرم 
         </button>
     </div>
@@ -2816,7 +2935,7 @@ const HTML_TEMPLATES = {
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed font-medium">
             درخواست‌های روزانه کلودفلر شما از ۹۰,۰۰۰ عبور کرده است. در صورت عبور از محدودیت رایگان ۱۰۰,۰۰۰ درخواست، دسترسی به پنل و اتصالات تا ساعت ۳:۳۰ بامداد (به وقت ایران) قطع خواهد شد.
         </p>
-        <button onclick="closeUsageWarning()" class="w-full py-3.5 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-black rounded-xl text-sm transition duration-300 shadow-lg">
+        <button onclick="closeUsageWarning()" class="w-full py-3.5 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-black rounded-xl text-sm transition duration-300 shadow-lg">
             متوجه شدم
         </button>
     </div>
@@ -2824,7 +2943,7 @@ const HTML_TEMPLATES = {
 <div id="free-panel-warning-modal" class="fixed inset-0 z-[85] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300 ease-out">
     <div class="w-full max-w-md bg-white dark:bg-amoled-card border border-rose-500/50 rounded-3xl shadow-2xl overflow-hidden p-6 text-center transition-all transform duration-300 opacity-0 scale-95 ease-out">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-500 mb-4 shadow-inner">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
         </div>
         <h3 class="font-black text-xl text-gray-900 dark:text-white mb-2">پیام همگانی</h3>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed font-medium">
@@ -2847,107 +2966,106 @@ const HTML_TEMPLATES = {
                 </button>
             </div>
             <form id="create-user-form" class="p-6 space-y-5 overflow-y-auto flex-1 overscroll-contain" style="-webkit-overflow-scrolling: touch; transform: translate3d(0,0,0); will-change: scroll-position, transform;" onsubmit="handleFormSubmit(event)">
-                <div class="space-y-4">
+                <div class="space-y-2.5">
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">نام کاربری</label>
+                        <label class="block text-[11px] font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">نام کاربری</label>
                         <div class="relative">
-                            <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-gray-400">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                             </span>
-                            <input type="text" id="input-name" placeholder="ali" maxlength="32" class="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-semibold text-gray-800 dark:text-zinc-100 placeholder-gray-400/80 transition" required>
+                            <input type="text" id="input-name" placeholder="ali" maxlength="32" class="w-full pl-3 pr-9 py-1.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-semibold text-gray-800 dark:text-zinc-100 placeholder-gray-400/80 transition" required>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                         <div>
-                            <label class="block text-[10px] sm:text-xs font-bold text-gray-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">حجم (GB)</label>
+                            <label class="block text-[10px] font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">حجم (GB)</label>
                             <div class="relative">
-                                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-gray-400">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                                 </span>
-                                <input type="number" id="input-limit" min="0" step="any" placeholder="نامحدود" class="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-semibold text-gray-800 dark:text-zinc-100 placeholder-gray-400/80 transition">
+                                <input type="number" id="input-limit" min="0" step="any" placeholder="نامحدود" class="w-full pl-3 pr-9 py-1.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-semibold text-gray-800 dark:text-zinc-100 placeholder-gray-400/80 transition">
                             </div>
                         </div>
                         <div>
-                            <label class="block text-[10px] sm:text-xs font-bold text-gray-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">اعتبار (روز)</label>
+                            <label class="block text-[10px] font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">اعتبار (روز)</label>
                             <div class="relative">
-                                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-gray-400">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 </span>
-                                <input type="number" id="input-expiry" min="0" placeholder="نامحدود" class="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-semibold text-gray-800 dark:text-zinc-100 placeholder-gray-400/80 transition">
+                                <input type="number" id="input-expiry" min="0" placeholder="نامحدود" class="w-full pl-3 pr-9 py-1.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-semibold text-gray-800 dark:text-zinc-100 placeholder-gray-400/80 transition">
                             </div>
                         </div>
                         <div>
-                            <label class="block text-[10px] sm:text-xs font-bold text-gray-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">سقف ریکوئست</label>
+                            <label class="block text-[10px] font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">سقف ریکوئست</label>
                             <div class="relative">
-                                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-gray-400">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                                 </span>
-                                <input type="number" id="input-req-limit" min="0" placeholder="نامحدود" class="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-semibold text-gray-800 dark:text-zinc-100 placeholder-gray-400/80 transition">
+                                <input type="number" id="input-req-limit" min="0" placeholder="نامحدود" class="w-full pl-3 pr-9 py-1.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-semibold text-gray-800 dark:text-zinc-100 placeholder-gray-400/80 transition">
                             </div>
                         </div>
                         <div>
-                            <label class="block text-[10px] sm:text-xs font-bold text-gray-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">محدودیت کاربر</label>
+                            <label class="block text-[10px] font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">محدودیت کاربر</label>
                             <div class="relative">
-                                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-gray-400">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                                 </span>
-                                <input type="number" id="input-ip-limit" min="0" placeholder="نامحدود" class="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-semibold text-gray-800 dark:text-zinc-100 placeholder-gray-400/80 transition">
+                                <input type="number" id="input-ip-limit" min="0" placeholder="نامحدود" class="w-full pl-3 pr-9 py-1.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-semibold text-gray-800 dark:text-zinc-100 placeholder-gray-400/80 transition">
                             </div>
                         </div>
                     </div>
                 </div>
-<div class="mt-4 pt-4 border-t border-gray-100 dark:border-zinc-900">
-    <div class="flex items-center justify-between mb-3">
-        <span class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">تنظیمات فرگمنت</span>
-        <label class="relative inline-flex items-center cursor-pointer select-none">
+<div class="mt-2.5 pt-2.5 border-t border-gray-100 dark:border-zinc-900">
+    <div class="flex items-center justify-between mb-1.5">
+        <span class="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">تنظیمات فرگمنت</span>
+        <label class="relative inline-flex items-center cursor-pointer scale-90 select-none">
             <input type="checkbox" id="input-frag-toggle" onchange="toggleFragInputs(this.checked)" class="sr-only peer">
-            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
-            <span class="mr-3 text-sm font-bold text-gray-700 dark:text-zinc-300"></span>
+            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
         </label>
     </div>
-    <div id="frag-inputs-container" class="grid grid-cols-2 gap-4 hidden transition-all duration-300 mt-3">
+    <div id="frag-inputs-container" class="grid grid-cols-2 gap-2.5 hidden transition-all duration-300 mt-1.5">
         <div>
-            <label class="block text-[10px] sm:text-xs font-bold text-gray-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">Fragment Length</label>
-            <input type="text" id="input-frag-len" placeholder="20-30" value="20-30" dir="ltr" class="w-full px-3 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-mono text-center text-gray-800 dark:text-zinc-100 transition">
+            <label class="block text-[10px] font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">Fragment Length</label>
+            <input type="text" id="input-frag-len" placeholder="200-3000" value="200-3000" dir="ltr" class="w-full px-2 py-1.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-mono text-center text-gray-800 dark:text-zinc-100 transition">
         </div>
         <div>
-            <label class="block text-[10px] sm:text-xs font-bold text-gray-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">Fragment Interval</label>
-            <input type="text" id="input-frag-int" placeholder="1-2" value="1-2" dir="ltr" class="w-full px-3 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-mono text-center text-gray-800 dark:text-zinc-100 transition">
+            <label class="block text-[10px] font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">Fragment Interval</label>
+            <input type="text" id="input-frag-int" placeholder="1-2" value="1-2" dir="ltr" class="w-full px-2 py-1.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-mono text-center text-gray-800 dark:text-zinc-100 transition">
         </div>
     </div>
 </div>
                 <div class="pt-2 border-t border-gray-100 dark:border-zinc-900">
                     <label class="block text-xs font-bold text-gray-500 dark:text-zinc-400 mb-3 uppercase tracking-wider">پورت‌های اتصال (انتخاب چندگانه)</label>
-                    <div class="space-y-4">
-                        <div class="p-4 bg-gray-50/50 dark:bg-zinc-900/20 border border-gray-200/60 dark:border-zinc-800 rounded-2xl shadow-sm">
-                            <div class="flex items-center gap-1.5 mb-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="p-3 bg-gray-50/50 dark:bg-zinc-900/20 border border-gray-200/60 dark:border-zinc-800 rounded-2xl shadow-sm">
+                            <div class="flex items-center gap-1.5 mb-2">
                                 <span class="flex h-2 w-2 rounded-full bg-blue-500 shadow-sm"></span>
-                                <span class="text-xs font-bold text-blue-600 dark:text-blue-400">🔒 پورت‌های امن (TLS)</span>
+                                <span class="text-[11px] font-bold text-blue-600 dark:text-blue-400">🔒 پورت‌های امن (TLS)</span>
                             </div>
-                            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="tls-ports-list">
+                            <div class="grid grid-cols-3 gap-1.5" id="tls-ports-list">
                             </div>
                         </div>
-                        <div class="p-4 bg-gray-50/50 dark:bg-zinc-900/20 border border-gray-200/60 dark:border-zinc-800 rounded-2xl shadow-sm">
-                            <div class="flex items-center gap-1.5 mb-3">
+                        <div class="p-3 bg-gray-50/50 dark:bg-zinc-900/20 border border-gray-200/60 dark:border-zinc-800 rounded-2xl shadow-sm">
+                            <div class="flex items-center gap-1.5 mb-2">
                                 <span class="flex h-2 w-2 rounded-full bg-amber-500 shadow-sm"></span>
-                                <span class="text-xs font-bold text-amber-600 dark:text-amber-400">🔓 پورت‌های معمولی (Non-TLS)</span>
+                                <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400">🔓 پورت‌های معمولی (Non-TLS)</span>
                             </div>
-                            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="nontls-ports-list">
+                            <div class="grid grid-cols-3 gap-1.5" id="nontls-ports-list">
                             </div>
                         </div>
-						<div class="mt-4 p-4 bg-gray-50/50 dark:bg-zinc-900/20 border border-gray-200/60 dark:border-zinc-800 rounded-2xl shadow-sm">
-                            <div class="flex items-center gap-1.5 mb-3">
-                                <span class="flex h-2 w-2 rounded-full bg-emerald-500 shadow-sm"></span>
-                                <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">⚙️ پورت‌های دلخواه (با ویرگول انگلیسی جدا کنید)</span>
-                            </div>
-                            <input type="text" id="input-custom-ports" placeholder="8080, 2096, 5000" dir="ltr" class="w-full px-3 py-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-mono text-left text-gray-800 dark:text-zinc-100 transition">
+                    </div>
+					<div class="mt-4 p-3 bg-gray-50/50 dark:bg-zinc-900/20 border border-gray-200/60 dark:border-zinc-800 rounded-2xl shadow-sm">
+                        <div class="flex items-center gap-1.5 mb-2">
+                            <span class="flex h-2 w-2 rounded-full bg-green-600 shadow-sm"></span>
+                            <span class="text-[11px] font-bold text-green-700 dark:text-green-500">⚙️ پورت‌های دلخواه (با فاصله جدا کنید)</span>
                         </div>
+                        <input type="text" id="input-custom-ports" placeholder="8080 2096 5000" dir="ltr" class="w-full px-2 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-mono text-left text-gray-800 dark:text-zinc-100 transition">
                     </div>
                 </div>
                 <div class="pt-4 border-t border-gray-100 dark:border-zinc-900 space-y-4">
 					<div>
     					<div class="flex items-center justify-between mb-2">
-        					<label class="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">آیپی تمیز کلودفلر (اختیاری)</label>
+        					<label class="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">آیپی تمیز (توصیح میشود)</label>
         					<button 
 								type="button" 
   								onclick="openIpSelectorModal()" 
@@ -2957,14 +3075,58 @@ const HTML_TEMPLATES = {
     					</div>
     					<textarea id="input-ips" rows="2" placeholder="104.16.0.1" class="w-full px-3 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-mono text-gray-800 dark:text-zinc-100 placeholder-gray-400/80 transition resize-none"></textarea>
 					</div>
-                    <div>
+                    <div class="mt-4 pt-4 border-t border-gray-150 dark:border-zinc-900 space-y-4">
+                        <div id="user-cf-proxy-section" class="transition-opacity duration-300">
+                            <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-zinc-300">ثابت کردن کشور (Cloudflare)</label>
+                            <div class="mb-2">
+                                <input type="text" id="user-location-search" oninput="filterUserLocations()" placeholder="جستجوی شهر، کشور یا IATA" class="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg shadow-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-zinc-200 transition">
+                            </div>
+                            <div class="relative">
+                                <select id="user-location-select" class="w-full pl-8 pr-3 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg shadow-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-zinc-200 cursor-pointer appearance-none">
+                                    <option value="">بدون لوکیشن (پیش‌فرض)</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-zinc-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-4 border-t-2 border-gray-200 dark:border-zinc-800">
+                            <div class="flex items-center justify-between gap-2 mb-3">
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <label class="relative inline-flex items-center cursor-pointer select-none flex-shrink-0">
+                                        <input type="checkbox" id="user-proxy-mode-toggle" onchange="toggleUserProxyMode(this.checked)" class="sr-only peer">
+                                        <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all dark:border-gray-600 peer-checked:bg-green-700"></div>
+                                    </label>
+                                    <label class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-zinc-300 cursor-pointer truncate" onclick="document.getElementById('user-proxy-mode-toggle').click()">ثابت کردن کشور و آیپی</label>
+                                </div>
+                                <a href="" target="_blank" class="text-[11px] bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition font-bold shadow-sm flex-shrink-0">ساخت پروکسی شخصی</a>
+                            </div>
+                            
+                            <div class="relative transition-opacity duration-300 opacity-50 pointer-events-none" id="user-socks5-container">
+                                <input type="text" id="user-socks5-input" placeholder="socks5:// یا http:// یا (user:pass@ip:port)" dir="ltr" class="w-full px-3 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-zinc-100 transition" disabled>
+                                <div class="w-full text-center">
+                                    <span id="test-user-proxy-result" class="inline-block mt-2 text-[11px] font-bold transition-colors break-words leading-relaxed empty:hidden"></span>
+                                </div>
+                                <div class="mt-2 flex items-center justify-between w-full gap-2">
+                                    <button type="button" onclick="testUserSocksProxy()" id="test-user-proxy-btn" class="flex-1 text-center text-[11px] bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 py-1.5 rounded border border-sky-200 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900/50 transition font-bold shadow-sm">تست پروکسی</button>
+                                    <button type="button" onclick="openProxySelectorModal()" class="flex-1 text-center text-[11px] bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 py-1.5 rounded border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition font-bold shadow-sm">مخزن پروکسی</button>
+                                </div>
+                                <div class="mt-3 p-3 border-2 border-dashed border-orange-400 dark:border-orange-500/70 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-xl text-[11px] font-bold leading-relaxed text-center w-full">
+                                    پروکسی‌های موجود در این مخزن عمومی بوده و ممکن است باعث افت سرعت و کاهش پایداری کانفیگ‌ها شوند. جهت دستیابی به بالاترین سطح کیفیت، پیشنهاد می‌شود از طریق دکمه‌ی <span class="text-blue-600 dark:text-blue-400 font-black">«ساخت پروکسی شخصی»</span> نسبت به راه‌اندازی پروکسی اختصاصی بر روی سرور خود اقدام نمایید.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
                         <label class="block text-xs font-bold text-gray-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">شبیه‌ساز اثر انگشت مرورگر (Fingerprint)</label>
                         <div class="relative">
                             <select id="fingerprint-select" class="w-full px-3 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-semibold text-gray-700 dark:text-zinc-300 cursor-pointer appearance-none">
                                 <option value="chrome">🌐 Chrome</option>
                                 <option value="firefox">🦊 Firefox</option>
                                 <option value="safari">🧭 Safari</option>
-                                <option value="ios" selected>📱 iOS Device (پیش‌فرض)</option>
+                                <option value="ios" selected>📱 iOS Device (پیشنهادی)</option>
                                 <option value="android">🤖 Android Device</option>
                                 <option value="edge">🌀 Microsoft Edge</option>
                                 <option value="360">🔒 360 Browser</option>
@@ -2985,18 +3147,18 @@ const HTML_TEMPLATES = {
     						        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-rose-500"></div>
     						    </label>
     						</div>
-    						<div class="flex items-center justify-between bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-2 shadow-sm">
+    						<div class="flex items-center justify-between bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl p-1.5 shadow-sm">
     						    <span class="text-[10px] sm:text-xs font-semibold text-gray-700 dark:text-zinc-300 whitespace-nowrap pl-1">ADS Blocker</span>
     						    <label class="relative inline-flex items-center cursor-pointer scale-[0.65] sm:scale-75 origin-left">
     						        <input type="checkbox" id="input-block-ads" class="sr-only peer">
-    						        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-500"></div>
+    						        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-700"></div>
     						    </label>
     						</div>
 						</div>
                 </div>
                 <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="toggleModal(false)" class="flex-1 py-3 bg-transparent border-2 border-red-500 text-red-600 hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white font-bold rounded-xl text-sm transition duration-200 shadow-sm">انصراف</button>
-                    <button type="submit" id="submit-btn" class="flex-1 py-3 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-bold rounded-xl text-sm transition duration-200 shadow-md hover:shadow-lg">ایجاد کاربر</button>
+                    <button type="button" onclick="toggleModal(false)" class="flex-1 py-3 bg-transparent border-2 border-rose-700 text-rose-700 hover:bg-rose-900/20 hover:text-rose-800 dark:border-rose-700 dark:text-rose-500 dark:hover:bg-rose-900/40 dark:hover:text-rose-400 font-bold rounded-xl text-sm transition duration-200 shadow-sm">انصراف</button>
+                    <button type="submit" id="submit-btn" class="flex-1 py-3 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-bold rounded-xl text-sm transition duration-200 shadow-md hover:shadow-lg">ایجاد کاربر</button>
                 </div>
             </form>
         </div>
@@ -3026,8 +3188,8 @@ const HTML_TEMPLATES = {
                 </div>
             </div>
             <div class="pt-4 flex gap-3">
-                <button type="button" onclick="toggleIpSelectorModal(false)" class="flex-1 py-2 bg-transparent border-2 border-red-500 text-red-600 hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white font-bold rounded-xl text-xs transition shadow-sm">لغو</button>
-                <button type="button" onclick="applySelectedIps()" class="flex-1 py-2 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-medium rounded-xl text-xs transition">دریافت</button>
+                <button type="button" onclick="toggleIpSelectorModal(false)" class="flex-1 py-2 bg-transparent border-2 border-rose-700 text-rose-700 hover:bg-rose-900/20 hover:text-rose-800 dark:border-rose-700 dark:text-rose-500 dark:hover:bg-rose-900/40 dark:hover:text-rose-400 font-bold rounded-xl text-xs transition shadow-sm">لغو</button>
+                <button type="button" onclick="applySelectedIps()" class="flex-1 py-2 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-medium rounded-xl text-xs transition">دریافت</button>
             </div>
         </div>
     </div>
@@ -3053,8 +3215,8 @@ const HTML_TEMPLATES = {
                 </div>
             </div>
             <div class="pt-4 flex gap-3">
-                <button type="button" onclick="toggleProxySelectorModal(false)" class="flex-1 py-2 bg-transparent border-2 border-red-500 text-red-600 hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white font-bold rounded-xl text-xs transition shadow-sm">لغو</button>
-                <button type="button" onclick="fetchAndLoadProxy()" id="proxy-fetch-btn" class="flex-1 py-2 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-bold rounded-xl text-xs transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled>دریافت پروکسی</button>
+                <button type="button" onclick="toggleProxySelectorModal(false)" class="flex-1 py-2 bg-transparent border-2 border-rose-700 text-rose-700 hover:bg-rose-900/20 hover:text-rose-800 dark:border-rose-700 dark:text-rose-500 dark:hover:bg-rose-900/40 dark:hover:text-rose-400 font-bold rounded-xl text-xs transition shadow-sm">لغو</button>
+                <button type="button" onclick="fetchAndLoadProxy()" id="proxy-fetch-btn" class="flex-1 py-2 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-bold rounded-xl text-xs transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled>دریافت پروکسی</button>
             </div>
         </div>
     </div>
@@ -3068,47 +3230,8 @@ const HTML_TEMPLATES = {
                 </button>
             </div>
             <div class="p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain">
-                <div id="cf-proxy-section" class="transition-opacity duration-300">
-                    <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-zinc-300">ثابت کردن کشور (Cloudflare)</label>
-                    <div class="mb-2">
-                        <input type="text" id="location-search" oninput="filterLocations()" placeholder="جستجوی شهر، کشور یا IATA" class="w-full px-3 py-2 bg-white dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg shadow-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-zinc-200 transition">
-                    </div>
-                    <div class="relative">
-                        <select id="location-select" class="w-full pl-8 pr-3 py-2.5 bg-white dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg shadow-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-zinc-200 cursor-pointer appearance-none">
-                            <option value="">در حال بارگذاری...</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-zinc-400">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                    </div>
-                </div>
-				<div class="pt-4 border-t-2 border-gray-300 dark:border-zinc-700">
-                    <div class="flex items-center justify-between gap-2 mb-3">
-                        <div class="flex items-center gap-1.5 min-w-0">
-                            <label class="relative inline-flex items-center cursor-pointer select-none flex-shrink-0">
-                                <input type="checkbox" id="proxy-mode-toggle" onchange="toggleProxyMode(this.checked)" class="sr-only peer">
-                                <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                            </label>
-                            <label class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-zinc-300 cursor-pointer truncate" onclick="document.getElementById('proxy-mode-toggle').click()">ثابت کردن کشور و آیپی</label>
-                        </div>
-                        <a href="" target="_blank" class="text-[11px] bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition font-bold shadow-sm flex-shrink-0">ساخت پروکسی شخصی</a>
-                    </div>
-                    <div class="relative transition-opacity duration-300 opacity-50 pointer-events-none" id="socks5-container">
-                        <input type="text" id="socks5-input" placeholder="socks5:// یا http:// یا (user:pass@ip:port)" dir="ltr" class="w-full px-3 py-2.5 bg-gray-50 dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-zinc-100 transition" disabled>
-                        <div class="w-full text-center">
-                            <span id="test-proxy-result" class="inline-block mt-2 text-[11px] font-bold transition-colors break-words leading-relaxed empty:hidden"></span>
-                        </div>
-                        <div class="mt-2 flex items-center justify-between w-full gap-2">
-                            <button type="button" onclick="testSocksProxy()" id="test-proxy-btn" class="flex-1 text-center text-[11px] bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 py-1.5 rounded border border-sky-200 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900/50 transition font-bold shadow-sm">تست پروکسی</button>
-                            <button type="button" onclick="openProxySelectorModal()" class="flex-1 text-center text-[11px] bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 py-1.5 rounded border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition font-bold shadow-sm">مخزن پروکسی</button>
-                        </div>
-                        <div class="mt-3 p-3 border-2 border-dashed border-orange-400 dark:border-orange-500/70 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-xl text-[11px] font-bold leading-relaxed text-center w-full">
-                            پروکسی‌های موجود در این مخزن عمومی بوده و ممکن است باعث افت سرعت و کاهش پایداری کانفیگ‌ها شوند. جهت دستیابی به بالاترین سطح کیفیت، پیشنهاد می‌شود از طریق دکمه‌ی <span class="text-blue-600 dark:text-blue-400 font-black">«ساخت پروکسی شخصی»</span> نسبت به راه‌اندازی پروکسی اختصاصی بر روی سرور خود اقدام نمایید.
-                        </div>
-                    </div>
-                </div>
-                <div class="pt-4 border-t-2 border-gray-300 dark:border-zinc-700">
-                    <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-zinc-300">نرخ رفرش خودکار پنل</label>
+                <div class="pt-2">
+					<label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-zinc-300">نرخ رفرش خودکار پنل</label>
                     <div class="relative">
                         <select id="refresh-rate-select" onchange="changeRefreshRate(this.value)" class="w-full pl-8 pr-3 py-2.5 bg-white dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-zinc-200 cursor-pointer appearance-none">
                             <option value="1000">۱ ثانیه</option>
@@ -3137,7 +3260,7 @@ const HTML_TEMPLATES = {
                             <label class="block text-[11px] text-gray-500 dark:text-gray-400 font-medium mb-1">رمز عبور جدید</label>
                             <input type="password" id="change-pwd-new" class="w-full px-3 py-2 bg-white dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs font-mono text-center">
                         </div>
-                        <button type="button" onclick="changeAdminPassword()" id="change-pwd-btn" class="w-full py-2 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-semibold rounded-lg text-xs transition-all shadow-sm">تغییر رمز عبور</button>
+                        <button type="button" onclick="changeAdminPassword()" id="change-pwd-btn" class="w-full py-2 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-semibold rounded-lg text-xs transition-all shadow-sm">تغییر رمز عبور</button>
                     </div>
                 </div>
                 <div class="pt-4 border-t-2 border-gray-300 dark:border-zinc-700">
@@ -3146,15 +3269,15 @@ const HTML_TEMPLATES = {
                         <button type="button" onclick="exportUsersBackup()" class="py-2.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-900/50 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm">
                             📤 پشتیبان گیری
                         </button>
-                        <button type="button" onclick="triggerImportBackup()" class="py-2.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-900/50 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm">
+                        <button type="button" onclick="triggerImportBackup()" class="py-2.5 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-500 hover:bg-green-100 dark:hover:bg-green-900/30 border border-green-200 dark:border-green-900/50 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm">
                             📥 بازیابی
                         </button>
                     </div>
                     <input type="file" id="backup-file-input" onchange="importUsersBackup(event)" accept=".json" class="hidden">
                 </div>
                 <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="toggleSettingsModal(false)" class="flex-1 py-2 bg-transparent border-2 border-red-500 text-red-600 hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white font-bold rounded-lg text-sm transition shadow-sm">انصراف</button>
-                    <button type="button" onclick="saveSettings()" id="save-settings-btn" class="flex-1 py-2 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-medium rounded-lg text-sm transition">ذخیره تنظیمات</button>
+                    <button type="button" onclick="toggleSettingsModal(false)" class="flex-1 py-2 bg-transparent border-2 border-rose-700 text-rose-700 hover:bg-rose-900/20 hover:text-rose-800 dark:border-rose-700 dark:text-rose-500 dark:hover:bg-rose-900/40 dark:hover:text-rose-400 font-bold rounded-lg text-sm transition shadow-sm">انصراف</button>
+                    <button type="button" onclick="saveSettings()" id="save-settings-btn" class="flex-1 py-2 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-medium rounded-lg text-sm transition">ذخیره تنظیمات</button>
                 </div>
             </div>
         </div>
@@ -3169,7 +3292,7 @@ const HTML_TEMPLATES = {
             نسخه جدید در دسترس است. اگر آپدیت خودکار جواب نداد، حتماً از طریق لینک زیر آپدیت دستی را انجام دهید.
         </p>
         <div class="space-y-3">
-            <button onclick="applyUpdate()" class="w-full py-3.5 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-black rounded-xl text-sm transition duration-300 shadow-sm flex items-center justify-center gap-2">
+            <button onclick="applyUpdate()" class="w-full py-3.5 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-black rounded-xl text-sm transition duration-300 shadow-sm flex items-center justify-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                 آپدیت خودکار (توصیه شده)
             </button>
@@ -3188,7 +3311,7 @@ const HTML_TEMPLATES = {
                 آپدیت دستی (رفتن به سایت)
             </a>
         </div>
-        <button onclick="toggleUpdateModal(false)" class="mt-5 w-full py-3.5 bg-transparent border-2 border-red-500 text-red-600 hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white font-bold rounded-xl text-sm transition duration-300 shadow-sm flex items-center justify-center">
+        <button onclick="toggleUpdateModal(false)" class="mt-5 w-full py-3.5 bg-transparent border-2 border-rose-700 text-rose-700 hover:bg-rose-900/20 hover:text-rose-800 dark:border-rose-700 dark:text-rose-500 dark:hover:bg-rose-900/40 dark:hover:text-rose-400 font-bold rounded-xl text-sm transition duration-300 shadow-sm flex items-center justify-center">
             انصراف
         </button>
     </div>
@@ -3217,7 +3340,7 @@ const HTML_TEMPLATES = {
             <div class="space-y-4">
                 <input type="password" id="update-token-input" placeholder="توکن را اینجا وارد کنید" class="w-full px-4 py-3 bg-gray-50 dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-mono text-center text-gray-900 dark:text-zinc-100 transition" dir="auto">
                 
-                <button id="submit-token-btn" onclick="submitTokenForUpdate()" class="w-full py-3 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-bold rounded-xl text-sm transition duration-300 shadow-lg">
+                <button id="submit-token-btn" onclick="submitTokenForUpdate()" class="w-full py-3 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-bold rounded-xl text-sm transition duration-300 shadow-lg">
                     ثبت و آپدیت پنل
                 </button>
             </div>
@@ -3245,7 +3368,7 @@ const HTML_TEMPLATES = {
             <button onclick="bulkEdit()" class="px-3 py-1.5 bg-yellow-50 dark:bg-yellow-950/20 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-xl text-xs font-bold transition border border-yellow-200 dark:border-yellow-900/50 flex items-center gap-1">
                 ✏️ ویرایش گروهی
             </button>
-            <button onclick="bulkToggleStatus(1)" class="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-xl text-xs font-bold transition border border-emerald-200 dark:border-emerald-900/50 flex items-center gap-1">
+            <button onclick="bulkToggleStatus(1)" class="px-3 py-1.5 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-500 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-xl text-xs font-bold transition border border-green-200 dark:border-green-900/50 flex items-center gap-1">
                 ✅ فعال‌سازی
             </button>
             <button onclick="bulkToggleStatus(0)" class="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-xl text-xs font-bold transition border border-amber-200 dark:border-amber-900/50 flex items-center gap-1">
@@ -3282,7 +3405,7 @@ const HTML_TEMPLATES = {
                     <div class="flex items-center gap-3 border border-gray-100 dark:border-zinc-900 p-3 rounded-xl bg-gray-50/20 dark:bg-zinc-900/10">
                         <label class="relative inline-flex items-center cursor-pointer select-none">
                             <input type="checkbox" id="bulk-apply-limit" class="sr-only peer">
-                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-green-700"></div>
                         </label>
                         <div class="flex-1">
                             <label class="block text-xs font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">حجم (GB)</label>
@@ -3292,7 +3415,7 @@ const HTML_TEMPLATES = {
                     <div class="flex items-center gap-3 border border-gray-100 dark:border-zinc-900 p-3 rounded-xl bg-gray-50/20 dark:bg-zinc-900/10">
                         <label class="relative inline-flex items-center cursor-pointer select-none">
                             <input type="checkbox" id="bulk-apply-expiry" class="sr-only peer">
-                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-green-700"></div>
                         </label>
                         <div class="flex-1">
                             <label class="block text-xs font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">اعتبار (روز)</label>
@@ -3302,7 +3425,7 @@ const HTML_TEMPLATES = {
                     <div class="flex items-center gap-3 border border-gray-100 dark:border-zinc-900 p-3 rounded-xl bg-gray-50/20 dark:bg-zinc-900/10">
                         <label class="relative inline-flex items-center cursor-pointer select-none">
                             <input type="checkbox" id="bulk-apply-req-limit" class="sr-only peer">
-                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-green-700"></div>
                         </label>
                         <div class="flex-1">
                             <label class="block text-xs font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">سقف ریکوئست</label>
@@ -3312,7 +3435,7 @@ const HTML_TEMPLATES = {
                     <div class="flex items-center gap-3 border border-gray-100 dark:border-zinc-900 p-3 rounded-xl bg-gray-50/20 dark:bg-zinc-900/10">
                         <label class="relative inline-flex items-center cursor-pointer select-none">
                             <input type="checkbox" id="bulk-apply-ip-limit" class="sr-only peer">
-                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-green-700"></div>
                         </label>
                         <div class="flex-1">
                             <label class="block text-xs font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">محدودیت کاربر</label>
@@ -3324,20 +3447,20 @@ const HTML_TEMPLATES = {
 							<div class="flex items-center gap-3">
 								<label class="relative inline-flex items-center cursor-pointer select-none">
 									<input type="checkbox" id="bulk-apply-frag" onchange="toggleBulkFragContainer(this.checked)" class="sr-only peer">
-									<div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+									<div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-green-700"></div>
 								</label>
 								<span class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">تنظیمات فرگمنت</span>
 							</div>
 							<label id="bulk-frag-toggle-wrapper" class="relative inline-flex items-center cursor-pointer select-none hidden">
 								<input type="checkbox" id="bulk-frag-enable-toggle" onchange="toggleBulkFragInputs(this.checked)" class="sr-only peer">
-								<div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
+								<div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
 								<span class="mr-2 text-xs font-bold text-gray-700 dark:text-zinc-300">فعال‌سازی برای همه</span>
 							</label>
 						</div>
 						<div id="bulk-frag-inputs-container" class="grid grid-cols-2 gap-2 hidden transition-all duration-300 pt-2 border-t border-gray-100 dark:border-zinc-800">
 							<div>
 								<label class="block text-[10px] font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">Fragment Length</label>
-								<input type="text" id="bulk-input-frag-len" placeholder="20-30" value="20-30" class="w-full px-2 py-1.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-mono text-center text-gray-800 dark:text-zinc-100 transition" dir="ltr">
+								<input type="text" id="bulk-input-frag-len" placeholder="200-3000" value="200-3000" class="w-full px-2 py-1.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-mono text-center text-gray-800 dark:text-zinc-100 transition" dir="ltr">
 							</div>
 							<div>
 								<label class="block text-[10px] font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">Fragment Interval</label>
@@ -3348,7 +3471,7 @@ const HTML_TEMPLATES = {
                     <div class="flex items-center gap-3 border border-gray-100 dark:border-zinc-900 p-3 rounded-xl bg-gray-50/20 dark:bg-zinc-900/10">
                         <label class="relative inline-flex items-center cursor-pointer select-none">
                             <input type="checkbox" id="bulk-apply-fingerprint" class="sr-only peer">
-                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-green-700"></div>
                         </label>
                         <div class="flex-1">
                             <label class="block text-xs font-bold text-gray-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wider">Fingerprint</label>
@@ -3369,7 +3492,7 @@ const HTML_TEMPLATES = {
                     <div class="flex items-center gap-3 border border-gray-100 dark:border-zinc-900 p-3 rounded-xl bg-gray-50/20 dark:bg-zinc-900/10">
                         <label class="relative inline-flex items-center cursor-pointer select-none">
                             <input type="checkbox" id="bulk-apply-ports" class="sr-only peer">
-                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-green-700"></div>
                         </label>
                         <div class="flex-1 space-y-3">
                             <div>
@@ -3382,39 +3505,39 @@ const HTML_TEMPLATES = {
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold text-gray-500 dark:text-zinc-400 mb-1">پورت‌های دلخواه (با ویرگول جدا کنید)</label>
-                                <input type="text" id="bulk-input-custom-ports" placeholder="8080, 2096, 5000" dir="ltr" class="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-mono text-left text-gray-800 dark:text-zinc-100 transition">
+                                <label class="block text-[10px] font-bold text-gray-500 dark:text-zinc-400 mb-1">پورت‌های دلخواه (با فاصله جدا کنید)</label>
+                                <input type="text" id="bulk-input-custom-ports" placeholder="8080 2096 5000" dir="ltr" class="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-mono text-left text-gray-800 dark:text-zinc-100 transition">
                             </div>
                         </div>
                     </div>
                     <div class="flex items-center gap-3 border border-gray-100 dark:border-zinc-900 p-3 rounded-xl bg-gray-50/20 dark:bg-zinc-900/10">
                         <label class="relative inline-flex items-center cursor-pointer select-none">
                             <input type="checkbox" id="bulk-apply-ips" class="sr-only peer">
-                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-green-700"></div>
                         </label>
                         <div class="flex-1">
-                            <label class="block text-xs font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">آیپی تمیز کلودفلر (اختیاری)</label>
+                            <label class="block text-xs font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">آیپی تمیز (توصیح میشود)</label>
                             <textarea id="bulk-input-ips" rows="2" placeholder="104.16.0.1" class="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-mono text-gray-800 dark:text-zinc-100 placeholder-gray-400/80 transition resize-none"></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="toggleBulkEditModal(false)" class="flex-1 py-3 bg-transparent border-2 border-red-500 text-red-600 hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white font-bold rounded-xl text-sm transition duration-200 shadow-sm">انصراف</button>
-                    <button type="submit" id="bulk-submit-btn" class="flex-1 py-3 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-bold rounded-xl text-sm transition duration-200 shadow-md">ثبت تغییرات گروهی</button>
+                    <button type="button" onclick="toggleBulkEditModal(false)" class="flex-1 py-3 bg-transparent border-2 border-rose-700 text-rose-700 hover:bg-rose-900/20 hover:text-rose-800 dark:border-rose-700 dark:text-rose-500 dark:hover:bg-rose-900/40 dark:hover:text-rose-400 font-bold rounded-xl text-sm transition duration-200 shadow-sm">انصراف</button>
+                    <button type="submit" id="bulk-submit-btn" class="flex-1 py-3 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-bold rounded-xl text-sm transition duration-200 shadow-md">ثبت تغییرات گروهی</button>
                 </div>
             </form>
         </div>
     </div>
 	<div id="update-success-modal" class="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300 ease-out">
-		<div class="w-full max-w-md bg-white dark:bg-amoled-card border border-emerald-500/50 rounded-3xl shadow-2xl overflow-hidden p-6 text-center transition-all transform duration-300 opacity-0 scale-95 ease-out">
-			<div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500 mb-4 shadow-inner">
+		<div class="w-full max-w-md bg-white dark:bg-amoled-card border border-green-600/50 rounded-3xl shadow-2xl overflow-hidden p-6 text-center transition-all transform duration-300 opacity-0 scale-95 ease-out">
+			<div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 mb-4 shadow-inner">
 				<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
 			</div>
 			<h3 class="font-black text-xl text-gray-900 dark:text-white mb-2">آپدیت موفقیت‌آمیز</h3>
 			<p class="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed font-medium">
 				آپدیت موفق بود لطفا صفحه را 10 ثانیه دیگر رفرش کنید تا نسخه جدید لود شود
 			</p>
-			<button onclick="window.location.reload()" class="w-full py-3.5 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-black rounded-xl text-sm transition duration-300 shadow-lg">
+			<button onclick="window.location.reload()" class="w-full py-3.5 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-black rounded-xl text-sm transition duration-300 shadow-lg">
 				رفرش صفحه
 			</button>
 		</div>
@@ -3426,8 +3549,8 @@ const HTML_TEMPLATES = {
         <h3 class="font-black text-xl text-gray-900 dark:text-white mb-3">تأیید عملیات</h3>
         <p id="custom-confirm-message" class="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed font-medium"></p>
         <div class="flex gap-3">
-            <button id="custom-confirm-cancel" class="flex-1 py-3 bg-transparent border-2 border-red-500 text-red-600 hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white font-bold rounded-xl text-sm transition duration-200 shadow-sm">انصراف</button>
-            <button id="custom-confirm-ok" class="flex-1 py-3 bg-transparent border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white font-bold rounded-xl text-sm transition duration-200 shadow-lg">تأیید</button>
+            <button id="custom-confirm-cancel" class="flex-1 py-3 bg-transparent border-2 border-rose-700 text-rose-700 hover:bg-rose-900/20 hover:text-rose-800 dark:border-rose-700 dark:text-rose-500 dark:hover:bg-rose-900/40 dark:hover:text-rose-400 font-bold rounded-xl text-sm transition duration-200 shadow-sm">انصراف</button>
+            <button id="custom-confirm-ok" class="flex-1 py-3 bg-transparent border-2 border-green-600 text-green-700 hover:bg-green-900/20 hover:text-green-800 dark:border-green-500 dark:text-green-500 dark:hover:bg-green-900/40 dark:hover:text-green-400 font-bold rounded-xl text-sm transition duration-200 shadow-lg">تأیید</button>
         </div>
     </div>
 </div>
@@ -3437,7 +3560,7 @@ const HTML_TEMPLATES = {
             const toast = document.createElement('div');
             const colors = type === 'error' 
                 ? 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400' 
-                : 'bg-emerald-50 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400';
+                : 'bg-green-50 dark:bg-green-900/40 border-green-200 dark:border-green-800 text-green-700 dark:text-green-500';
             
             toast.className = 'px-4 py-3 border rounded-xl shadow-lg font-bold text-sm transform transition-all duration-300 -translate-y-full opacity-0 ' + colors;
             toast.innerText = message;
@@ -3702,7 +3825,7 @@ const HTML_TEMPLATES = {
             const applyPorts = document.getElementById('bulk-apply-ports').checked;
             const checkedPorts = Array.from(document.querySelectorAll('input[name="bulk-ports"]:checked')).map(cb => cb.value);
             const bulkCustomPortsRaw = document.getElementById('bulk-input-custom-ports') ? document.getElementById('bulk-input-custom-ports').value : '';
-            const bulkCustomPortsArray = bulkCustomPortsRaw.split(',').map(p => p.trim()).filter(p => p.length > 0);
+            const bulkCustomPortsArray = bulkCustomPortsRaw.replace(/ +/g, ',').split(',').map(p => p.trim()).filter(p => p.length > 0);
             const finalBulkPortsArray = checkedPorts.concat(bulkCustomPortsArray);
             const portsValue = finalBulkPortsArray.join(',');
             const tlsValue = finalBulkPortsArray.some(p => tlsPorts.includes(p)) ? 'on' : 'off';
@@ -3710,7 +3833,7 @@ const HTML_TEMPLATES = {
             const ipsValue = document.getElementById('bulk-input-ips').value;
 			const applyFrag = document.getElementById('bulk-apply-frag').checked;
             const isBulkFragEnabled = document.getElementById('bulk-frag-enable-toggle').checked;
-			const fragLenValue = isBulkFragEnabled ? (document.getElementById('bulk-input-frag-len').value || '20-30') : "";
+			const fragLenValue = isBulkFragEnabled ? (document.getElementById('bulk-input-frag-len').value || '200-3000') : "";
 			const fragIntValue = isBulkFragEnabled ? (document.getElementById('bulk-input-frag-int').value || '1-2') : "";
             if (!applyLimit && !applyExpiry && !applyReqLimit && !applyIpLimit && !applyFingerprint && !applyPorts && !applyIps && !applyFrag) {
                 alert('⚠️ لطفا حداقل یک فیلد را برای اعمال تغییر انتخاب کنید!');
@@ -3779,9 +3902,9 @@ const HTML_TEMPLATES = {
                 const isCheckedDefault = port === '443' ? 'checked' : '';
                 return '<label class="relative cursor-pointer">' +
                     '<input type="checkbox" name="ports" value="' + port + '" ' + isCheckedDefault + ' class="peer sr-only">' +
-                    '<div class="flex items-center justify-center gap-2 px-3 py-2 border border-gray-200 dark:border-zinc-800/80 rounded-xl text-xs font-semibold select-none transition-all duration-200 hover:bg-gray-50 dark:hover:bg-zinc-800/40 text-gray-700 dark:text-zinc-300 peer-checked:bg-blue-50 dark:peer-checked:bg-blue-950/25 peer-checked:border-blue-500 dark:peer-checked:border-blue-500/70 peer-checked:text-blue-600 dark:peer-checked:text-blue-400 shadow-sm">' +
+                    '<div class="flex items-center justify-center gap-1 px-1.5 py-1.5 border border-gray-200 dark:border-zinc-800/80 rounded-lg text-[11px] font-semibold select-none transition-all duration-200 hover:bg-gray-50 dark:hover:bg-zinc-800/40 text-gray-700 dark:text-zinc-300 peer-checked:bg-blue-50 dark:peer-checked:bg-blue-950/25 peer-checked:border-blue-500 dark:peer-checked:border-blue-500/70 peer-checked:text-blue-600 dark:peer-checked:text-blue-400 shadow-sm">' +
                         '<span>' + port + '</span>' +
-                        '<svg class="w-4 h-4 hidden peer-checked:block text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>' +
+                        '<svg class="w-3 h-3 hidden peer-checked:block text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>' +
                     '</div>' +
                 '</label>';
             }).join('');
@@ -3789,9 +3912,9 @@ const HTML_TEMPLATES = {
                 const isCheckedDefault = port === '80' ? 'checked' : '';
                 return '<label class="relative cursor-pointer">' +
                     '<input type="checkbox" name="ports" value="' + port + '" ' + isCheckedDefault + ' class="peer sr-only">' +
-                    '<div class="flex items-center justify-center gap-2 px-3 py-2 border border-gray-200 dark:border-zinc-800/80 rounded-xl text-xs font-semibold select-none transition-all duration-200 hover:bg-gray-50 dark:hover:bg-zinc-800/40 text-gray-700 dark:text-zinc-300 peer-checked:bg-amber-50 dark:peer-checked:bg-amber-950/25 peer-checked:border-amber-500 dark:peer-checked:border-amber-500/70 peer-checked:text-amber-600 dark:peer-checked:text-amber-400 shadow-sm">' +
+                    '<div class="flex items-center justify-center gap-1 px-1.5 py-1.5 border border-gray-200 dark:border-zinc-800/80 rounded-lg text-[11px] font-semibold select-none transition-all duration-200 hover:bg-gray-50 dark:hover:bg-zinc-800/40 text-gray-700 dark:text-zinc-300 peer-checked:bg-amber-50 dark:peer-checked:bg-amber-950/25 peer-checked:border-amber-500 dark:peer-checked:border-amber-500/70 peer-checked:text-amber-600 dark:peer-checked:text-amber-400 shadow-sm">' +
                         '<span>' + port + '</span>' +
-                        '<svg class="w-4 h-4 hidden peer-checked:block text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>' +
+                        '<svg class="w-3 h-3 hidden peer-checked:block text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>' +
                     '</div>' +
                 '</label>';
             }).join('');
@@ -3858,7 +3981,7 @@ const HTML_TEMPLATES = {
                 const baCheck = document.getElementById('input-block-ads');
 				if (baCheck) baCheck.checked = false;
 				const fragLenInput = document.getElementById('input-frag-len');
-				if (fragLenInput) fragLenInput.value = '20-30';
+				if (fragLenInput) fragLenInput.value = '200-3000';
 				const fragIntInput = document.getElementById('input-frag-int');
 				if (fragIntInput) fragIntInput.value = '1-2';
                 const fragToggle = document.getElementById('input-frag-toggle');
@@ -3902,6 +4025,19 @@ const HTML_TEMPLATES = {
             const fragToggle = document.getElementById('input-frag-toggle');
             if (fragToggle) fragToggle.checked = false;
             window.toggleFragInputs(false);
+
+            const userProxyToggle = document.getElementById('user-proxy-mode-toggle');
+            if (userProxyToggle) userProxyToggle.checked = false;
+            if (typeof window.toggleUserProxyMode === 'function') window.toggleUserProxyMode(false);
+            const userLocSelect = document.getElementById('user-location-select');
+            if (userLocSelect) userLocSelect.value = '';
+            const userLocSearch = document.getElementById('user-location-search');
+            if (userLocSearch) userLocSearch.value = '';
+            const userSocksInput = document.getElementById('user-socks5-input');
+            if (userSocksInput) userSocksInput.value = '';
+            const userProxyResult = document.getElementById('test-user-proxy-result');
+            if (userProxyResult) userProxyResult.innerText = '';
+
             toggleModal(true);
         }
         const themeToggleBtn = document.getElementById('theme-toggle');
@@ -3920,9 +4056,9 @@ const HTML_TEMPLATES = {
             }
         });
 		async function restartCore() {
-			if (!await customConfirm('آیا از ری استارت هسته مطمئن هستید؟ تمام اتصالات یک لحظه قطع خواهند شد.')) return;
+			if (!await customConfirm('آیا از ری استارت پنل مطمئن هستید؟ کاربران شما لحظه ای قطع خواهند شد.')) return;
             
-            const btn = document.querySelector('button[title="ری‌استارت هسته ورکر"]');
+            const btn = document.querySelector('button[title="ری استارت پنل"]');
             if (btn) {
                 btn.disabled = true;
                 btn.classList.add('animate-pulse');
@@ -3943,10 +4079,10 @@ const HTML_TEMPLATES = {
 					return;
 				}
                 if (res.ok && data.success) {
-                    alert('هسته ورکر با موفقیت ری‌استارت شد! پنل اکنون رفرش می‌شود.');
+                    alert('پنل ری استارت شد صفحه رفرش می شود.');
                     window.location.reload();
                 } else {
-                    alert('خطا در ری‌استارت هسته: ' + (data.error || 'ناشناخته'));
+                    alert('خطا در ری‌استارت پنل: ' + (data.error || 'ناشناخته'));
                     if (btn) {
                         btn.disabled = false;
                         btn.classList.remove('animate-pulse');
@@ -3987,17 +4123,40 @@ const HTML_TEMPLATES = {
                 const serverTime = data.serverTime || Date.now();
                 window.lastServerTime = serverTime;
                 const totalUsersCount = users.length;
-                const activeUsersCount = users.filter(u => u.is_online === 1).length;
-                const totalGbUsage = users.reduce((sum, u) => sum + (u.used_gb || 0), 0);
+                const activeUsersCount = users.reduce((sum, u) => sum + (u.online_count || 0), 0);
+                const totalGbUsage = users.reduce((sum, u) => sum + (u.lifetime_used_gb || u.used_gb || 0), 0);
                 document.getElementById('stat-total-users').innerText = totalUsersCount;
                 document.getElementById('stat-active-users').innerText = activeUsersCount;
                 document.getElementById('stat-total-usage').innerText = totalGbUsage < 1 ? (totalGbUsage * 1024).toFixed(0) + ' MB' : totalGbUsage.toFixed(2) + ' GB';
+                let topUser = null;
+let maxUsage = 0;
+
+for (const u of users) {
+    const usage = u.used_gb || 0;
+    if (usage > maxUsage) {
+        maxUsage = usage;
+        topUser = u;
+    }
+}
+
+const topUserElement = document.getElementById('stat-top-user');
+const topUserUsageElement = document.getElementById('stat-top-user-usage');
+
+if (topUser && topUser.username) {
+    topUserElement.innerText = topUser.username;
+    const topUsage = topUser.used_gb || 0;
+    topUserUsageElement.innerText = topUsage < 1 ? (topUsage * 1024).toFixed(0) + ' MB مصرف شده' : topUsage.toFixed(2) + ' GB مصرف شده';
+} else {
+    topUserElement.innerText = '—';
+    topUserUsageElement.innerText = '۰ GB مصرف شده';
+}
+// ====== پایان بخش پر مصرف‌ترین کاربر ======
                 const cfRequests = data.cfRequestsToday || 0;
                 const reqCard = document.getElementById('card-cf-requests');
                 const warningBtn = document.getElementById('cf-warning-btn');
                 if (cfRequests >= 90000) {
                     if (reqCard) {
-                        reqCard.className = "bg-red-50 dark:bg-red-950/20 border border-red-500 rounded-2xl p-5 shadow-[0_0_15px_rgba(239,68,68,0.4)] flex flex-col justify-between hover:shadow-md transition duration-300 relative overflow-hidden group animate-pulse";
+                        reqCard.className = "bg-red-50 dark:bg-red-950/20 border border-red-500 rounded-xl p-2.5 shadow-[0_0_15px_rgba(239,68,68,0.4)] flex flex-col justify-center gap-1 hover:shadow-md transition duration-300 relative overflow-hidden group min-h-[64px] animate-pulse";
                     }
                     if (warningBtn) {
                         warningBtn.classList.remove('hidden');
@@ -4008,7 +4167,7 @@ const HTML_TEMPLATES = {
                     }
                 } else {
                     if (reqCard) {
-                        reqCard.className = "bg-white dark:bg-amoled-card border border-gray-200 dark:border-amoled-border rounded-2xl p-5 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-orange-400 dark:hover:border-orange-500/50 transition duration-300 relative overflow-hidden group";
+                        reqCard.className = "bg-white dark:bg-amoled-card border border-gray-200 dark:border-amoled-border rounded-xl p-2.5 shadow-sm flex flex-col justify-center gap-1 hover:shadow-md hover:border-orange-400 dark:hover:border-orange-500/50 transition duration-300 relative overflow-hidden group min-h-[64px]";
                     }
                     if (warningBtn) {
                         warningBtn.classList.add('hidden');
@@ -4019,10 +4178,6 @@ const HTML_TEMPLATES = {
                 document.getElementById('stat-cf-total').innerText = cfTotal >= 1000000 ? (cfTotal / 1000000).toFixed(2) + 'M' : (cfTotal >= 1000 ? (cfTotal / 1000).toFixed(1) + 'k' : cfTotal);
                 const progressPercent = Math.min((cfRequests / 100000) * 100, 100);
                 document.getElementById('stat-cf-progress').style.width = progressPercent + '%';
-                const topUser = users.reduce((max, u) => (u.used_gb || 0) > (max.used_gb || 0) ? u : max, { username: 'هیچکدام', used_gb: 0 });
-                document.getElementById('stat-top-user').innerText = topUser.username;
-                const topUsage = topUser.used_gb || 0;
-                document.getElementById('stat-top-user-usage').innerText = topUsage < 1 ? (topUsage * 1024).toFixed(0) + ' MB مصرف شده' : topUsage.toFixed(2) + ' GB مصرف شده';
                 filterAndRenderUsers();
             } catch (err) {
                 document.getElementById('loading-state').innerHTML = '<span class="text-red-500">خطا در پردازش اطلاعات کاربران</span>';
@@ -4092,6 +4247,16 @@ const HTML_TEMPLATES = {
             const tableContainer = document.getElementById('users-table-container');
             const emptyState = document.getElementById('empty-state');
             const tbody = document.getElementById('users-tbody');
+
+            let locationsMap = {};
+            try {
+                const cachedLocations = localStorage.getItem('cached_locations_list');
+                if (cachedLocations) {
+                    JSON.parse(cachedLocations).forEach(loc => {
+                        if (loc.iata && loc.cca2) locationsMap[loc.iata.toUpperCase()] = loc.cca2;
+                    });
+                }
+            } catch(e) {}
             if (users.length === 0) {
                 loadingState.classList.add('hidden');
                 emptyState.classList.remove('hidden');
@@ -4099,12 +4264,26 @@ const HTML_TEMPLATES = {
                 if (window.allUsers && window.allUsers.length > 0) {
                     emptyState.querySelector('p').innerText = 'کاربری با مشخصات جستجو شده یافت نشد.';
                 } else {
-                    emptyState.querySelector('p').innerText = 'کاربری وجود ندارد. برای ساخت اولین کاربر روی دکمه «افزودن کاربر جدید» کلیک کنید.';
+                    emptyState.querySelector('p').innerText = 'کاربری وجود ندارد. برای ساخت اولین کاربر روی دکمه « + » کلیک کنید.';
                 }
             } else {
                 loadingState.classList.add('hidden');
                 emptyState.classList.add('hidden');
                 tableContainer.classList.remove('hidden');
+                
+                let locationsMap = {};
+                try {
+                    const cachedLocations = localStorage.getItem('cached_locations_list');
+                    if (cachedLocations) {
+                        JSON.parse(cachedLocations).forEach(loc => {
+                            if (loc.iata && loc.cca2) locationsMap[loc.iata.toUpperCase()] = loc.cca2;
+                        });
+                    }
+                } catch(e) {}
+
+                let proxyFlagCache = {};
+                try { proxyFlagCache = JSON.parse(localStorage.getItem('proxy_flag_cache') || '{}'); } catch(e) {}
+
                 tbody.innerHTML = users.map(user => {
                     const createdDate = user.created_at ? new Date(user.created_at).toLocaleDateString('fa-IR') : '-';
                     let daysRemaining = 'نامحدود';
@@ -4219,7 +4398,7 @@ const HTML_TEMPLATES = {
 					} else {
 					    onlineHtml = '<div class="flex flex-row items-center gap-2 w-full min-w-[90px] select-none">' +
 					        '<div class="w-2 h-20 bg-gray-200 dark:bg-zinc-700 rounded-full flex flex-col justify-end overflow-hidden flex-shrink-0">' +
-					            '<div class="w-full ' + (onlineCount > 0 ? 'bg-emerald-500' : 'bg-gray-400') + ' rounded-full transition-all duration-500" style="height: 100%"></div>' +
+					            '<div class="w-full ' + (onlineCount > 0 ? 'bg-green-600' : 'bg-gray-400') + ' rounded-full transition-all duration-500" style="height: 100%"></div>' +
 					        '</div>' +
 					        '<div class="flex flex-col justify-between h-20 text-[10px] text-gray-500 dark:text-gray-400 font-medium text-right flex-1 whitespace-nowrap">' +
 					            '<span class="text-gray-800 dark:text-zinc-200 leading-none">متصل: ' + onlineCount + '</span>' +
@@ -4236,22 +4415,41 @@ const HTML_TEMPLATES = {
                         if (new Date(serverTime) > expiryDate) isExpired = true;
                     }
                     const isEffectivelyActive = user.is_active !== 0 && !isExpired;
-                    const statusBtnColor = user.is_active === 0 ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30' : 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30';
+                    const statusBtnColor = user.is_active === 0 ? 'text-green-700 dark:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30' : 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30';
                     const statusBtnTitle = user.is_active === 0 ? 'فعال کردن کاربر' : 'قطع کردن کاربر';
                     const statusBtnIcon = user.is_active === 0 
                         ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
                         : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
                     const isChecked = (window.selectedUsernames && window.selectedUsernames.has(user.username)) ? 'checked' : '';
+                    
+                    
+                    let locBadge = '';
+                    if (user.user_proxy_iata) {
+                        const iata = user.user_proxy_iata.toUpperCase();
+                        const cca2 = locationsMap[iata];
+                        const flag = cca2 ? getFlagEmoji(cca2) : '🌐';
+                        locBadge = '<span title="کشور: ' + iata + '" class="text-xl leading-none px-0.5 drop-shadow-[0_0_2px_rgba(0,0,0,0.3)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.3)]">' + flag + '</span>';
+                    } else if (user.user_socks5 || user.user_proxy_ip) {
+                        const targetProxy = user.user_socks5 || user.user_proxy_ip;
+                        const cachedFlag = proxyFlagCache[targetProxy];
+                        if (cachedFlag) {
+                            locBadge = '<span title="پروکسی اختصاصی" class="text-xl leading-none px-0.5 drop-shadow-[0_0_2px_rgba(0,0,0,0.3)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.3)]">' + cachedFlag + '</span>';
+                        } else {
+                            locBadge = '<span data-proxy="' + targetProxy + '" title="پروکسی اختصاصی" class="async-proxy-flag text-xl leading-none px-0.5 drop-shadow-[0_0_2px_rgba(0,0,0,0.3)] dark:drop-shadow-[0_0_2px_rgba(255,255,255,0.3)]">⏳</span>';
+                        }
+                    }
+
                     return '<tr class="hover:bg-gray-50 dark:hover:bg-zinc-900/40 border-b border-gray-100 dark:border-zinc-800 last:border-0">' +
                             '<td class="p-2 border-r border-gray-100 dark:border-zinc-800 text-center select-none">' +
                                 '<input type="checkbox" name="select-user" value="' + encodeURIComponent(user.username) + '" onchange="onUserSelectChange(this)" ' + isChecked + ' class="w-5 h-5 rounded-md border-2 border-gray-300 dark:border-zinc-700 text-blue-600 bg-white dark:bg-zinc-800 checked:bg-blue-600 checked:border-blue-600 focus:ring-blue-500/50 focus:ring-offset-0 transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95">' +
                             '</td>' +
                             '<td class="p-2 border-r border-gray-100 dark:border-zinc-800 text-center">' +
-                                '<div class="flex flex-col items-center gap-1.5 w-[140px] mx-auto select-none">' +
+                                '<div class="flex flex-col items-center gap-1.5 w-[165px] mx-auto select-none">' +
                                     '<span class="font-bold text-gray-900 dark:text-zinc-100 text-sm truncate max-w-full">' + user.username + '</span>' +
-                                    '<div class="flex gap-1 w-full justify-center text-center">' +
-                                        (!isEffectivelyActive ? '<span class="px-1.5 py-0.5 text-[10px] font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded-md">غیرفعال</span>' : '<span class="px-1.5 py-0.5 text-[10px] font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md">فعال</span>') +
-                                        (user.is_online === 1 ? '<span class="px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500 text-white rounded-md animate-pulse" dir="rtl">● آنلاین (' + (user.online_count || 0) + (limit ? '/' + limit : '') + ')</span>' : '<span class="px-1.5 py-0.5 text-[10px] font-medium bg-gray-200 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400 rounded-md">آفلاین</span>') +
+                                    '<div class="flex flex-nowrap items-center gap-1 w-full justify-center text-center whitespace-nowrap">' +
+                                        (!isEffectivelyActive ? '<span class="px-1 py-0.5 text-[10px] font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded-md whitespace-nowrap">غیرفعال</span>' : '<span class="px-1 py-0.5 text-[10px] font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-md whitespace-nowrap">فعال</span>') +
+                                        locBadge +
+                                        (user.is_online === 1 ? '<span class="px-1 py-0.5 text-[10px] font-medium bg-green-600 text-white rounded-md animate-pulse whitespace-nowrap" dir="rtl">' + user.online_count + '</span>' : '<span class="px-1 py-0.5 text-[10px] font-medium bg-gray-200 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400 rounded-md whitespace-nowrap">آفلاین</span>') +
                                     '</div>' +
                                     '<div class="grid grid-cols-2 gap-1 w-full">' +
                                         '<button onclick="copyConfig(\\'' + encodeURIComponent(user.username) + '\\')" title="کپی کانفیگ" class="p-1.5 flex items-center justify-center bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-md transition shadow-sm"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></button>' +
@@ -4276,7 +4474,7 @@ const HTML_TEMPLATES = {
 							            '</button>' +
 							        '</div>' +
 							        '<div class="flex gap-1">' +
-							            '<button onclick="copyStatusLink(\\'' + encodeURIComponent(user.username) + '\\')" class="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-lg text-xs font-bold transition border border-emerald-200 dark:border-emerald-800">' +
+							            '<button onclick="copyStatusLink(\\'' + encodeURIComponent(user.username) + '\\')" class="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-500 hover:bg-green-100 dark:hover:bg-green-900/50 rounded-lg text-xs font-bold transition border border-green-200 dark:border-green-800">' +
 							                '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>' +
 							                'صفحه وضعیت' +
 							            '</button>' +
@@ -4297,10 +4495,14 @@ const HTML_TEMPLATES = {
 							'<td class="p-2 border-r border-gray-100 dark:border-zinc-800">' + reqHtml + '</td>' +
 							'<td class="p-2 border-r border-gray-100 dark:border-zinc-800">' + expiryHtml + '</td>' +
 							'<td class="p-2 border-r border-gray-100 dark:border-zinc-800">' + onlineHtml + '</td>' +
-							'<td class="p-2 border-r border-gray-100 dark:border-zinc-800 text-xs text-gray-500 text-center">' + createdDate + '</td>' +
+                            '<td class="p-2 border-r border-gray-100 dark:border-zinc-800 text-xs text-gray-500 text-center">' + createdDate + '</td>'
 							'</tr>';
                 }).join('');
                 updateBulkActionsBar();
+
+                if (typeof loadProxyFlags === 'function') {
+                    setTimeout(loadProxyFlags, 50);
+                }
             }
         }
 		async function resetUserData(encodedUsername, actionType) {
@@ -4357,13 +4559,19 @@ const HTML_TEMPLATES = {
             const reqLimit = document.getElementById('input-req-limit').value || null;
             const ipLimit = document.getElementById('input-ip-limit').value || null;
             const customPortsRaw = document.getElementById('input-custom-ports') ? document.getElementById('input-custom-ports').value : '';
-			const customPortsArray = customPortsRaw.split(',').map(p => p.trim()).filter(p => p.length > 0);
+			const customPortsArray = customPortsRaw.replace(/ +/g, ',').split(',').map(p => p.trim()).filter(p => p.length > 0);
 			const checkedPorts = Array.from(document.querySelectorAll('input[name="ports"]:checked')).map(cb => cb.value).concat(customPortsArray);
             const block_porn = document.getElementById('input-block-porn').checked ? 1 : 0;
             const block_ads = document.getElementById('input-block-ads').checked ? 1 : 0;
             const isFragEnabled = document.getElementById('input-frag-toggle').checked;
-            const frag_len = isFragEnabled ? (document.getElementById('input-frag-len').value || "20-30") : "";
+            const frag_len = isFragEnabled ? (document.getElementById('input-frag-len').value || "200-3000") : "";
             const frag_int = isFragEnabled ? (document.getElementById('input-frag-int').value || "1-2") : "";
+            
+            // گرفتن مقادیر لوکیشن اختصاصی
+            const userProxyMode = document.getElementById('user-proxy-mode-toggle') ? document.getElementById('user-proxy-mode-toggle').checked : false;
+            const userProxyIata = !userProxyMode ? (document.getElementById('user-location-select') ? document.getElementById('user-location-select').value : null) : null;
+            const userSocks5 = userProxyMode ? (document.getElementById('user-socks5-input') ? document.getElementById('user-socks5-input').value.trim() : null) : null;
+
             if (checkedPorts.length === 0) {
                 alert('⚠️ لطفا حداقل یک پورت را برای اتصال انتخاب کنید!');
                 submitButton.disabled = false;
@@ -4380,7 +4588,12 @@ const HTML_TEMPLATES = {
                 const response = await fetch(url, {
                     method: method,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, limit_gb: limit, expiry_days: expiry, limit_req: reqLimit, tls, port, ips, fingerprint, ip_limit: ipLimit, block_porn: block_porn, block_ads: block_ads, frag_len: frag_len, frag_int: frag_int })
+                    body: JSON.stringify({ 
+                        username, limit_gb: limit, expiry_days: expiry, limit_req: reqLimit, tls, port, ips, fingerprint, ip_limit: ipLimit, block_porn: block_porn, block_ads: block_ads, frag_len: frag_len, frag_int: frag_int,
+                        user_proxy_iata: userProxyIata || null,
+                        user_socks5: userSocks5 || null,
+                        user_proxy_ip: null
+                    })
                 });
                 if (response.ok) {
                     toggleModal(false);
@@ -4546,7 +4759,7 @@ function editUser(encodedUsername) {
     const fragToggle = document.getElementById('input-frag-toggle');
     if (fragToggle) fragToggle.checked = hasFrag;
     
-    document.getElementById('input-frag-len').value = hasFrag ? user.frag_len : '20-30';
+    document.getElementById('input-frag-len').value = hasFrag ? user.frag_len : '200-3000';
     document.getElementById('input-frag-int').value = hasFrag ? user.frag_int : '1-2';
     window.toggleFragInputs(hasFrag);
 
@@ -4559,9 +4772,29 @@ function editUser(encodedUsername) {
     });
 
     const customPortInput = document.getElementById('input-custom-ports');
-    if (customPortInput) customPortInput.value = customPorts.join(', ');
+    if (customPortInput) customPortInput.value = customPorts.join(' ');
 
-    toggleModal(true);
+    const userProxyToggle = document.getElementById('user-proxy-mode-toggle');
+    const userLocSelect = document.getElementById('user-location-select');
+    const userSocksInput = document.getElementById('user-socks5-input');
+
+	const targetProxy = user.user_socks5 || user.user_proxy_ip;
+	const userProxyResult = document.getElementById('test-user-proxy-result');
+	if (userProxyResult) userProxyResult.innerText = '';
+
+	if (targetProxy) {
+		if (userProxyToggle) userProxyToggle.checked = true;
+		if (typeof window.toggleUserProxyMode === 'function') window.toggleUserProxyMode(true);
+		if (userSocksInput) userSocksInput.value = targetProxy;
+		if (userLocSelect) userLocSelect.value = '';
+	} else {
+		if (userProxyToggle) userProxyToggle.checked = false;
+		if (typeof window.toggleUserProxyMode === 'function') window.toggleUserProxyMode(false);
+		if (userSocksInput) userSocksInput.value = '';
+		if (userLocSelect) userLocSelect.value = user.user_proxy_iata || '';
+	}
+
+	toggleModal(true);
 }
         async function deleteUser(encodedUsername) {
 			const username = decodeURIComponent(encodedUsername);
@@ -4591,16 +4824,23 @@ function editUser(encodedUsername) {
         }
         function renderLocationsUI(locations, activeIata) {
             const select = document.getElementById('location-select');
+            const userSelect = document.getElementById('user-location-select');
             locations.sort((a, b) => (a.cca2 || '').localeCompare(b.cca2 || ''));
+            
             let html = '<option value="">🌐 پیش‌فرض (لوکیشن خودکار)</option>';
+            let userHtml = '<option value="">🌐 استفاده از تنظیمات عمومی پنل</option>';
+            
             locations.forEach(loc => {
                 if (loc.iata && loc.city) {
                     const flag = getFlagEmoji(loc.cca2);
                     const isSelected = loc.iata.toUpperCase() === activeIata.toUpperCase() ? 'selected' : '';
-                    html += '<option value="' + loc.iata + '" ' + isSelected + '>' + flag + ' ' + loc.city + ' (' + loc.iata + ')</option>';
+                    const optionStr = '<option value="' + loc.iata + '" ' + isSelected + '>' + flag + ' ' + loc.city + ' (' + loc.iata + ')</option>';
+                    html += optionStr;
+                    userHtml += '<option value="' + loc.iata + '">' + flag + ' ' + loc.city + ' (' + loc.iata + ')</option>';
                 }
             });
-            select.innerHTML = html;
+            if (select) select.innerHTML = html;
+            if (userSelect) userSelect.innerHTML = userHtml;
         }
 async function loadLocations() {
     const select = document.getElementById('location-select');
@@ -4740,7 +4980,7 @@ async function testSocksProxy() {
 		if (res.ok && data.success) {
 			const flag = typeof getFlagEmoji === 'function' ? getFlagEmoji(data.country) : '🌐';
 			resultSpan.innerText = flag + ' پینگ: ' + data.ping + 'ms';
-			resultSpan.className = 'text-[11px] font-bold text-emerald-500';
+			resultSpan.className = 'text-[11px] font-bold text-green-600';
 		} else {
 			resultSpan.innerText = 'خطا: ' + (data.error || 'ناموفق');
 			resultSpan.className = 'text-[11px] font-bold text-red-500 w-full mt-1 break-words';
@@ -4782,6 +5022,139 @@ window.toggleProxyMode = function(isSocksMode) {
         if (socksInput) socksInput.disabled = true;
     }
 };
+window.toggleUserProxyMode = function(isSocksMode) {
+    const cfSection = document.getElementById('user-cf-proxy-section');
+    const socksContainer = document.getElementById('user-socks5-container');
+    const locationSelect = document.getElementById('user-location-select');
+    const locationSearch = document.getElementById('user-location-search');
+    const socksInput = document.getElementById('user-socks5-input');
+
+    if (isSocksMode) {
+        if (cfSection) cfSection.classList.add('opacity-50', 'pointer-events-none');
+        if (locationSelect) locationSelect.disabled = true;
+        if (locationSearch) locationSearch.disabled = true;
+        if (socksContainer) socksContainer.classList.remove('opacity-50', 'pointer-events-none');
+        if (socksInput) socksInput.disabled = false;
+    } else {
+        if (cfSection) cfSection.classList.remove('opacity-50', 'pointer-events-none');
+        if (locationSelect) locationSelect.disabled = false;
+        if (locationSearch) locationSearch.disabled = false;
+        if (socksContainer) socksContainer.classList.add('opacity-50', 'pointer-events-none');
+        if (socksInput) socksInput.disabled = true;
+    }
+};
+async function loadProxyFlags() {
+    const badges = document.querySelectorAll('.async-proxy-flag');
+    if (badges.length === 0) return;
+    
+    let cache = {};
+    try { cache = JSON.parse(localStorage.getItem('proxy_flag_cache') || '{}'); } catch(e) {}
+
+    for (let badge of badges) {
+        const proxyStr = badge.getAttribute('data-proxy');
+        if (!proxyStr) continue;
+
+        if (cache[proxyStr]) {
+            badge.innerHTML = cache[proxyStr];
+            badge.classList.remove('async-proxy-flag');
+            continue;
+        }
+
+        badge.classList.remove('async-proxy-flag');
+
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 4000);
+            const res = await fetch('/api/test-proxy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ proxy: proxyStr }),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            const data = await res.json();
+            
+            let flag = '🌐';
+            if (res.ok && data.success && data.country) {
+                flag = typeof getFlagEmoji === 'function' ? getFlagEmoji(data.country) : '🌐';
+            }
+            
+            cache[proxyStr] = flag;
+            localStorage.setItem('proxy_flag_cache', JSON.stringify(cache));
+            
+            badge.innerHTML = flag;
+        } catch (e) {
+            badge.innerHTML = '🌐';
+        }
+    }
+}
+window.filterUserLocations = function() {
+    const searchTerm = document.getElementById('user-location-search').value.toLowerCase().trim();
+    const cachedLocations = localStorage.getItem('cached_locations_list');
+    
+    if (!cachedLocations) return;
+    
+    try {
+        const allLocations = JSON.parse(cachedLocations);
+        const filteredLocations = allLocations.filter(loc => {
+            if (!loc.iata || !loc.city) return false;
+            const searchString = (loc.iata + ' ' + loc.city + ' ' + (loc.cca2 || '')).toLowerCase();
+            return searchString.includes(searchTerm);
+        });
+        
+        const userSelect = document.getElementById('user-location-select');
+        let userHtml = '<option value="">🌐 استفاده از تنظیمات عمومی پنل</option>';
+        filteredLocations.forEach(loc => {
+            const flag = getFlagEmoji(loc.cca2);
+            userHtml += '<option value="' + loc.iata + '">' + flag + ' ' + loc.city + ' (' + loc.iata + ')</option>';
+        });
+        if (userSelect) userSelect.innerHTML = userHtml;
+    } catch(e) {}
+};
+
+async function testUserSocksProxy() {
+	const btn = document.getElementById('test-user-proxy-btn');
+	const resultSpan = document.getElementById('test-user-proxy-result');
+	const proxyStr = document.getElementById('user-socks5-input').value.trim();
+	if (!proxyStr) {
+		resultSpan.innerText = 'وارد نشده!';
+		resultSpan.className = 'text-[11px] font-bold text-red-500 w-full mt-1';
+		return;
+	}
+	btn.disabled = true;
+	btn.innerText = 'صبر کنید...';
+	resultSpan.innerText = '';
+	
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+	try {
+		const res = await fetch('/api/test-proxy', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ proxy: proxyStr }),
+			signal: controller.signal
+		});
+		clearTimeout(timeoutId);
+		const data = await res.json();
+		if (res.ok && data.success) {
+			const flag = typeof getFlagEmoji === 'function' ? getFlagEmoji(data.country) : '🌐';
+			resultSpan.innerText = flag + ' پینگ: ' + data.ping + 'ms';
+			resultSpan.className = 'text-[11px] font-bold text-green-600';
+		} else {
+			resultSpan.innerText = 'خطا: ' + (data.error || 'ناموفق');
+			resultSpan.className = 'text-[11px] font-bold text-red-500 w-full mt-1 break-words';
+		}
+	} catch (e) {
+		clearTimeout(timeoutId);
+		if (e.name === 'AbortError') resultSpan.innerText = 'تایم‌اوت (پروکسی خراب است)';
+		else resultSpan.innerText = 'خطا در ارتباط';
+		resultSpan.className = 'text-[11px] font-bold text-red-500 w-full mt-1 break-words';
+	} finally {
+		btn.disabled = false;
+		btn.innerText = 'تست پروکسی';
+	}
+}
 window.filterLocations = function() {
     const searchTerm = document.getElementById('location-search').value.toLowerCase().trim();
     const cachedLocations = localStorage.getItem('cached_locations_list');
@@ -5008,7 +5381,7 @@ window.filterLocations = function() {
                 window.location.reload();
             }
         }
-const CURRENT_VERSION = '1.7.8';
+const CURRENT_VERSION = '1.8.0';
 const UPDATE_FIX = "constsCURRENT_VERSION='d.d.d'";
 		async function checkForUpdates(isManual = false) {
             try {
@@ -5359,6 +5732,7 @@ async function fetchAndLoadProxy() {
     try {
 		const sources = [
 			{ url: 'https://raw.githubusercontent.com/proxifly/free-proxy-list/refs/heads/main/proxies/countries/' + country.toUpperCase() + '/data.txt', prefix: '' },
+			{ url: 'https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/proxy/' + country.toUpperCase() + '.txt', prefix: '' },
     
 			{ url: 'https://api.proxyscrape.com/v2/?request=displayproxies&protocol=socks5&country=' + country, prefix: 'socks5://' },
 			{ url: 'https://api.proxyscrape.com/v2/?request=displayproxies&protocol=socks4&country=' + country, prefix: 'socks4://' },
@@ -5486,8 +5860,8 @@ async function fetchAndLoadProxy() {
             }
 
             if (bestProxy) {
-                document.getElementById('socks5-input').value = bestProxy;
-                document.getElementById('test-proxy-result').innerText = '';
+                document.getElementById('user-socks5-input').value = bestProxy;
+                document.getElementById('test-user-proxy-result').innerText = '';
                 toggleProxySelectorModal(false);
                 showToast('پروکسی با بهترین امتیاز لود شد.');
             } else {
@@ -5551,8 +5925,8 @@ window.addEventListener('click', (e) => {
             </div>
             <h1 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white mb-1">پنل کاسپین - وضعیت اشتراک</h1>
             <p id="display-username" class="text-sm font-bold text-blue-500 tracking-wide font-mono mb-2"></p>
-            <div id="live-connections-badge" class="hidden inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-full text-xs font-bold shadow-sm">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <div id="live-connections-badge" class="hidden inline-flex items-center gap-1.5 px-3 py-1 bg-green-600/10 border border-green-600/20 text-green-600 rounded-full text-xs font-bold shadow-sm">
+                <span class="w-2 h-2 rounded-full bg-green-600 animate-pulse"></span>
                 <span id="live-connections-text" dir="rtl">۰ دستگاه متصل</span>
             </div>
         </div>
@@ -5596,13 +5970,13 @@ window.addEventListener('click', (e) => {
             <div class="bg-white/40 dark:bg-zinc-900/30 border border-gray-200 dark:border-amoled-border rounded-2xl p-5 shadow-sm">
                 <div class="flex justify-between items-center mb-3">
                     <span class="text-xs font-semibold text-gray-500 dark:text-zinc-400 flex items-center gap-1.5">
-                        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                         وضعیت ریکوئست‌ها
                     </span>
-                    <span id="req-pct" class="text-xs font-bold text-emerald-500">۰٪</span>
+                    <span id="req-pct" class="text-xs font-bold text-green-600">۰٪</span>
                 </div>
                 <div class="w-full bg-gray-200 dark:bg-zinc-800 rounded-full h-2.5 overflow-hidden mb-3">
-                    <div id="req-progress" class="bg-emerald-600 h-2.5 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    <div id="req-progress" class="bg-green-700 h-2.5 rounded-full transition-all duration-1000" style="width: 0%"></div>
                 </div>
                 <div class="flex justify-between text-xs text-gray-500 dark:text-zinc-400 font-medium">
                     <span>مصرف شده: <span id="used-req" class="font-bold text-gray-800 dark:text-zinc-200">-</span></span>
@@ -5628,7 +6002,7 @@ window.addEventListener('click', (e) => {
         </div>
         <div class="border-t border-gray-100 dark:border-zinc-800 pt-6 relative z-10">
             <h2 class="text-sm font-bold mb-4 flex items-center gap-2">
-                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                 دریافت کانفیگ و اشتراک‌ها
             </h2>
             <div class="space-y-3">
@@ -5668,7 +6042,7 @@ window.addEventListener('click', (e) => {
             const toast = document.createElement('div');
             const colors = type === 'error' 
                 ? 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400' 
-                : 'bg-emerald-50 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400';
+                : 'bg-green-50 dark:bg-green-900/40 border-green-200 dark:border-green-800 text-green-700 dark:text-green-500';
             
             toast.className = 'px-4 py-3 border rounded-xl shadow-lg font-bold text-sm transform transition-all duration-300 -translate-y-full opacity-0 ' + colors;
             toast.innerText = message;
@@ -5712,7 +6086,7 @@ window.addEventListener('click', (e) => {
                     var isTlsPort = ['443', '2053', '2083', '2087', '2096', '8443'].includes(portStr);
                     var tlsVal = isTlsPort ? 'tls' : 'none';
                     var remark = u.username;
-                   links.push('vle' + 'ss://' + (u.uuid || '') + '@' + ip + ':' + portStr + '?path=/&security=' + tlsVal + '&encryption=none&insecure=0&host=' + host + '&fp=' + fp + '&type=ws&allowInsecure=0&sni=' + host + userFrag + '#' + encodeURIComponent(remark));
+                    links.push('vle' + 'ss://' + (u.uuid || '') + '@' + ip + ':' + portStr + '?path=/&security=' + tlsVal + '&encryption=none&insecure=0&host=' + host + '&fp=' + fp + '&type=ws&allowInsecure=0&sni=' + host + userFrag + '#' + encodeURIComponent(remark));
                 });
             });
             return links.join('\\n');
@@ -5763,8 +6137,8 @@ window.addEventListener('click', (e) => {
             badge.classList.remove('hidden');
             if (u.online_count && u.online_count > 0) {
                 document.getElementById('live-connections-text').innerText = u.online_count + (limit ? '/' + limit : '') + ' دستگاه متصل';
-                badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-full text-xs font-bold shadow-sm';
-                badge.querySelector('span.w-2').className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+                badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 bg-green-600/10 border border-green-600/20 text-green-600 rounded-full text-xs font-bold shadow-sm';
+                badge.querySelector('span.w-2').className = 'w-2 h-2 rounded-full bg-green-600 animate-pulse';
             } else {
                 document.getElementById('live-connections-text').innerText = '۰ دستگاه متصل';
                 badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 bg-gray-500/10 border border-gray-500/20 text-gray-500 dark:text-zinc-400 rounded-full text-xs font-bold shadow-sm';
@@ -5862,7 +6236,7 @@ window.addEventListener('click', (e) => {
                 statusCard.className = 'mb-6 rounded-2xl p-4 text-center border font-bold relative z-10 bg-yellow-500/10 border-yellow-500/30 text-yellow-500 shadow-md shadow-yellow-500/5';
                 statusText.innerText = '⏳ وضعیت اشتراک: منقضی شده (پایان زمان اعتبار)';
             } else {
-                statusCard.className = 'mb-6 rounded-2xl p-4 text-center border font-bold relative z-10 bg-emerald-500/10 border-emerald-500/30 text-emerald-500 shadow-md shadow-emerald-500/5';
+                statusCard.className = 'mb-6 rounded-2xl p-4 text-center border font-bold relative z-10 bg-green-600/10 border-green-600/30 text-green-600 shadow-md shadow-green-600/5';
                 statusText.innerText = '✅ وضعیت اشتراک: فعال و متصل';
             }
         });
