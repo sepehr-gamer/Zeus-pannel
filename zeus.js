@@ -3140,21 +3140,31 @@ const HTML_TEMPLATES = {
                         </div>
                     </div>
 						<div class="grid grid-cols-2 gap-2 mt-3">
-    						<div class="flex items-center justify-between bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-2 shadow-sm">
-    						    <span class="text-[10px] sm:text-xs font-semibold text-gray-700 dark:text-zinc-300 whitespace-nowrap pl-1">Porn Blocker</span>
-    						    <label class="relative inline-flex items-center cursor-pointer scale-[0.65] sm:scale-75 origin-left">
-    						        <input type="checkbox" id="input-block-porn" class="sr-only peer">
-    						        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-rose-500"></div>
-    						    </label>
-    						</div>
-    						<div class="flex items-center justify-between bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl p-1.5 shadow-sm">
-    						    <span class="text-[10px] sm:text-xs font-semibold text-gray-700 dark:text-zinc-300 whitespace-nowrap pl-1">ADS Blocker</span>
-    						    <label class="relative inline-flex items-center cursor-pointer scale-[0.65] sm:scale-75 origin-left">
-    						        <input type="checkbox" id="input-block-ads" class="sr-only peer">
-    						        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-700"></div>
-    						    </label>
-    						</div>
-						</div>
+    <!-- Porn Blocker -->
+    <div class="flex items-center justify-between bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-2 shadow-sm">
+        <span class="text-[10px] sm:text-xs font-semibold text-gray-700 dark:text-zinc-300 whitespace-nowrap pl-1">Porn Blocker</span>
+        <label class="relative inline-flex items-center cursor-pointer scale-[0.65] sm:scale-75 origin-left">
+            <input type="checkbox" id="input-block-porn" class="sr-only peer">
+            <div class="w-9 h-9 rounded-full border-2 border-red-500 flex items-center justify-center text-white font-bold text-xs peer-checked:bg-red-500 peer-checked:border-red-600 transition-all duration-200">
+                <span class="peer-checked:hidden">🚫</span>
+                <span class="hidden peer-checked:block text-white text-xs">✓</span>
+            </div>
+        </label>
+    </div>
+
+    <!-- ADS Blocker -->
+    <div class="flex items-center justify-between bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-2 shadow-sm">
+        <span class="text-[10px] sm:text-xs font-semibold text-gray-700 dark:text-zinc-300 whitespace-nowrap pl-1">ADS Blocker</span>
+        <label class="relative inline-flex items-center cursor-pointer scale-[0.65] sm:scale-75 origin-left">
+            <input type="checkbox" id="input-block-ads" class="sr-only peer">
+            <div class="w-9 h-9 rounded-full border-2 border-red-500 flex items-center justify-center text-white font-bold text-xs peer-checked:bg-red-500 peer-checked:border-red-600 transition-all duration-200">
+                <span class="peer-checked:hidden">ADS</span>
+                <span class="hidden peer-checked:block text-white text-xs">✓</span>
+            </div>
+        </label>
+    </div>
+</div>
+
                 </div>
                 <div class="pt-4 flex gap-3">
                     <button type="button" onclick="toggleModal(false)" class="flex-1 py-3 bg-transparent border-2 border-rose-700 text-rose-700 hover:bg-rose-900/20 hover:text-rose-800 dark:border-rose-700 dark:text-rose-500 dark:hover:bg-rose-900/40 dark:hover:text-rose-400 font-bold rounded-xl text-sm transition duration-200 shadow-sm">انصراف</button>
@@ -5381,7 +5391,7 @@ window.filterLocations = function() {
                 window.location.reload();
             }
         }
-const CURRENT_VERSION = '1.8.0';
+const CURRENT_VERSION = '1.8.1';
 const UPDATE_FIX = "constsCURRENT_VERSION='d.d.d'";
 		async function checkForUpdates(isManual = false) {
             try {
