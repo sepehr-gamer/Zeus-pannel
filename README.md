@@ -1,48 +1,5 @@
 
 
-<img  src="https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/photos/dark2.png"  width="100%"  alt="Zeus Panel Dark Mode"  style="border-radius: 12px; margin-bottom: 15px;">
-
-  
-<img  src="https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/photos/add.png"  width="100%"  alt="Zeus Panel Dark Mode"  style="border-radius: 12px; margin-bottom: 15px;">
-
-  
-
-<table  width="100%">
-
-<tr>
-
-<td width="50%" valign="middle" align="center">
-
-<img  src="https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/photos/updater.png"  width="100%"  alt="Zeus Panel Status"  style="border-radius: 12px;">
-
-</td>
-
-<td width="50%" valign="middle" align="center">
-
-<img  src="https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/photos/deployer.png"  width="100%"  alt="Zeus Panel Interface"  style="border-radius: 12px;">
-
-</td>
-
-</tr>
-
-<tr>
-
-<td width="50%" valign="middle" align="center">
-
-<img  src="https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/photos/bot.jpg"  width="100%"  alt="Zeus Panel Status"  style="border-radius: 12px;">
-
-</td>
-
-<td width="50%" valign="middle" align="center">
-
-<img  src="https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/photos/status.png"  width="100%"  alt="Zeus Panel Dark Mode"  style="border-radius: 12px;">
-
-</td>
-
-</tr>
-
-</table>
-
   
 
 <div  align="center">
